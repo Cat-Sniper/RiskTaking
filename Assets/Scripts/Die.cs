@@ -11,7 +11,6 @@ public class Die : MonoBehaviour {      //Generic Die class, can be used for any
 
 	public void Roll(){
 		int topFace = Random.Range(1, nSides + 1);
-        Debug.Log(topFace);
         anim.SetInteger("DieFace", topFace);
 
 	}

@@ -7,6 +7,7 @@ public class RiskDie : Die {
     [SerializeField]
     private DieType dieType = DieType.ATTACKER;
     private bool canFight = true;
+    private bool wonFight = false;
     private SpriteRenderer sprRend;
 	// Use this for initialization
 	void Awake () {
@@ -27,6 +28,8 @@ public class RiskDie : Die {
 
     public bool GetCanFight() { return canFight; }
     public void SetCanFight(bool fight) { canFight = fight; }
+    public bool GetWonFight() { return wonFight; }
+    public void SetWonFight(bool fight) { wonFight = fight; }
     public DieType GetDieType() { return dieType; }
     public void SetDieType(DieType die)
     {

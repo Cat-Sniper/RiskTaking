@@ -42,7 +42,7 @@ public class RiskGameMaster : MonoBehaviour {
 
     [SerializeField] private GameObject[] attackingDice;
     [SerializeField] private GameObject[] defendingDice;
-    private List<GameObject> currentRoll;
+
 
 	// Use this for initialization
 	void Start () {
@@ -302,6 +302,29 @@ public class RiskGameMaster : MonoBehaviour {
         defender.outline.color = Color.red;
         defendingCountry.text = defender.name;
         defendingSoldierCount.text = defender.DisplaySoldiers().ToString();
+        defendingTerritory = defender;
+        
+    }
+
+    public void AttackButton()
+    {
+        int numAttackingDice = (int)attackSlider.value;
+        int numDefendingDice = 0;
+        if(defendingTerritory.DisplaySoldiers() == 1)
+            numDefendingDice = 1;
+        else
+            numDefendingDice = 2;
+
+        for(int i = 0; i < numAttackingDice; i++)
+        {
+            attackingDice[i].SetActive(true);
+            attackingDice[i].GetComponent<RiskDie>().Roll();
+        }
+        for (int i = 0; i < numDefendingDice; i++)
+        {
+            defendingDice[i].SetActive(true);
+            defendingDice[i].GetComponent<RiskDie>().Roll();
+        }
         
     }
     public void NextTurnButton()
