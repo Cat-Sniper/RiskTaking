@@ -264,7 +264,7 @@ public class RiskGameMaster : MonoBehaviour {
 			break;
 		}
 
-        int startingPlayer = Random.Range(0, nPlayers);
+        int startingPlayer = UnityEngine.Random.Range(0, nPlayers);
         setupPanel.SetActive(false);
         currentPlayersTurn = startingPlayer;
         phaseInfoTxt.text = "Pick an unclaimed territory (white)";
@@ -280,6 +280,8 @@ public class RiskGameMaster : MonoBehaviour {
         newArmies = playerID.GetTerritories().Count / 3;
         playerID.AddArmies(newArmies);
     }
+
+   
 
     private void AdvanceTurn() {
         if(currentPlayersTurn < currentPlayers.Length -1) {
@@ -306,26 +308,55 @@ public class RiskGameMaster : MonoBehaviour {
         
     }
 
-    public void AttackButton()
+    public void AttackButton() //Dice Rolling Algorithm
     {
+        int defendersLost = 0;
         int numAttackingDice = (int)attackSlider.value;
         int numDefendingDice = 0;
         if(defendingTerritory.DisplaySoldiers() == 1)
             numDefendingDice = 1;
         else
             numDefendingDice = 2;
+        int[] attackDiceRoll = new int[numAttackingDice];
+        int[] defendDiceRoll = new int[numDefendingDice];
 
-        for(int i = 0; i < numAttackingDice; i++)
+        for (int i = 0; i < numAttackingDice; i++)
         {
             attackingDice[i].SetActive(true);
             attackingDice[i].GetComponent<RiskDie>().Roll();
+            attackDiceRoll[i] = attackingDice[i].GetComponent<RiskDie>().GetTopFace();
         }
         for (int i = 0; i < numDefendingDice; i++)
         {
             defendingDice[i].SetActive(true);
             defendingDice[i].GetComponent<RiskDie>().Roll();
+            defendDiceRoll[i] = defendingDice[i].GetComponent<RiskDie>().GetTopFace();
         }
-        
+
+        //Sort dice in descending order to ensure the dice match properly
+        SortIntArrayDesc(attackDiceRoll);
+        SortIntArrayDesc(defendDiceRoll);
+
+        for (int i = 0; i < numDefendingDice; i++)
+        {
+            if (attackDiceRoll[i] > defendDiceRoll[i])
+            {
+                defendersLost++;
+                Debug.Log("Attacker: " + attackDiceRoll[i] + " beats defender: " + defendDiceRoll[i]);
+            }
+            else
+                Debug.Log("Defender: " + defendDiceRoll[i] + " beats attacker: " + attackDiceRoll[i]);
+        }
+        defendingTerritory.AdjustSoldiers(-defendersLost);
+        Debug.Log("Defender loses " + defendersLost + " soldiers");
+
+        if (defendingTerritory.DisplaySoldiers() == 0)
+        {
+            defendingTerritory.SetOwner(currentTerritory.DisplayOwner());
+            defendingTerritory.SetSoldiers(numAttackingDice);
+            currentTerritory.AdjustSoldiers(-numAttackingDice);
+        }
+        CloseAttackPanelButton();
     }
     public void NextTurnButton()
     {
@@ -355,4 +386,14 @@ public class RiskGameMaster : MonoBehaviour {
     }
     public void CloseAttackPanelButton() { attackPanel.SetActive(false); }
     public void OpenAttackPanel() { attackPanel.SetActive(true); }
+   
+    //Helper functions//
+    private void SortIntArrayDesc(int[] ary)
+    {
+        System.Array.Sort<int>(ary,
+           delegate (int a, int b)
+           {
+               return b - a;
+           });
+    }
 }
