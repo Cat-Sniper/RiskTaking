@@ -31,6 +31,9 @@ public class RiskGameMaster : MonoBehaviour {
     private GameObject attackUI;
     private GameObject fortifyUI;
     private GameObject reinforceUI;
+    [SerializeField] private GameObject explosionPrefab;
+    
+        //#########################//
 
     private GameObject attackPanel;
     private Slider attackSlider;
@@ -46,6 +49,7 @@ public class RiskGameMaster : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
+        
         allTerritories = new TerritoryNode[unclaimedTerritories]; 															//Test
         turnInfo = GameObject.Find("Current Turn").GetComponent<Text>();
         phaseInfoTxt = GameObject.Find("Current Phase").GetComponent<Text>();
@@ -311,9 +315,13 @@ public class RiskGameMaster : MonoBehaviour {
     public void AttackButton() //Dice Rolling Algorithm
     {
         int defendersLost = 0;
+        int attackersLost = 0;
         int numAttackingDice = (int)attackSlider.value;
         int numDefendingDice = 0;
-        if(defendingTerritory.DisplaySoldiers() == 1)
+
+        
+
+        if (defendingTerritory.DisplaySoldiers() == 1 || numAttackingDice == 1)
             numDefendingDice = 1;
         else
             numDefendingDice = 2;
@@ -342,22 +350,44 @@ public class RiskGameMaster : MonoBehaviour {
             if (attackDiceRoll[i] > defendDiceRoll[i])
             {
                 defendersLost++;
+
+                GameObject explode = CFX_SpawnSystem.GetNextObject(explosionPrefab, false); //WarFX by JMO
+                Vector3 exPos = defendingTerritory.transform.position;
+                exPos.z = 1.1f;
+                explode.transform.position = exPos;
+                explode.SetActive(true);
+
                 Debug.Log("Attacker: " + attackDiceRoll[i] + " beats defender: " + defendDiceRoll[i]);
             }
             else
+            {
+                attackersLost++;
+
+                GameObject explode = CFX_SpawnSystem.GetNextObject(explosionPrefab, false); //WarFX by JMO
+                Vector3 exPos = currentTerritory.transform.position;
+                exPos.z = 1.1f;
+                explode.transform.position = exPos;
+                explode.SetActive(true);
                 Debug.Log("Defender: " + defendDiceRoll[i] + " beats attacker: " + attackDiceRoll[i]);
+            }
         }
         defendingTerritory.AdjustSoldiers(-defendersLost);
+        currentTerritory.AdjustSoldiers(-attackersLost);
         Debug.Log("Defender loses " + defendersLost + " soldiers");
+        Debug.Log("Attacker loses " + attackersLost + " soldiers");
 
+        //Annex territory, set all properties necessary for the new owner
         if (defendingTerritory.DisplaySoldiers() == 0)
         {
-            defendingTerritory.SetOwner(currentTerritory.DisplayOwner());
-            defendingTerritory.SetSoldiers(numAttackingDice);
             currentTerritory.AdjustSoldiers(-numAttackingDice);
+            currentPlayers[defendingTerritory.DisplayOwner()].RemoveTerritory(defendingTerritory);
+            currentPlayers[currentPlayersTurn].AddTerritory(defendingTerritory);
+            defendingTerritory.SetOwner(currentTerritory.DisplayOwner());
+            defendingTerritory.SetColor(currentPlayers[currentPlayersTurn].armyColour);
+            defendingTerritory.SetSoldiers(numAttackingDice);
         }
         CloseAttackPanelButton();
-    }
+    } // end AttackButton()
     public void NextTurnButton()
     {
         if (!setup)
@@ -383,7 +413,7 @@ public class RiskGameMaster : MonoBehaviour {
                     break;
             }
         }
-    }
+    }// end NextTurnButton()
     public void CloseAttackPanelButton() { attackPanel.SetActive(false); }
     public void OpenAttackPanel() { attackPanel.SetActive(true); }
    

@@ -27,5 +27,6 @@ public class Player : MonoBehaviour {
     public void AddArmies(int troops) { heldArmies += troops; }
     public int GetArmies() { return heldArmies; }
     public void AddTerritory(TerritoryNode terry) { currentTerritories.Add(terry); }
+    public void RemoveTerritory(TerritoryNode terry) { currentTerritories.Remove(terry); }
     public List<TerritoryNode> GetTerritories() { return currentTerritories;}
 }
