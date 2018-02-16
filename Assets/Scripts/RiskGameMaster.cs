@@ -10,7 +10,6 @@ public class RiskGameMaster : MonoBehaviour {
     private bool optionsSelected = false;
     private bool allTsClaimed = false;
     private bool didOnce = false;
-    private bool fortified = false;
     private bool selectedAttacker = false;
 
     public Continent[] continents;
@@ -78,7 +77,7 @@ public class RiskGameMaster : MonoBehaviour {
             if (!setup) {                                         
                 switch (currentPhase) {
                     case TURN_PHASE.RECRUIT:
-//################## Recruit ########################//                       
+                       
                         if (!didOnce)
                         {
                             reinforceUI.SetActive(true);
@@ -106,7 +105,6 @@ public class RiskGameMaster : MonoBehaviour {
                             }
                         }
                                 break;
-//################## Attack ##########################//
                     case TURN_PHASE.ATTACK:
                         if (!didOnce)
                         {
@@ -121,16 +119,16 @@ public class RiskGameMaster : MonoBehaviour {
                             if (mouseCast2D)
                             {
                                 TerritoryNode newTerritory = mouseCast2D.rigidbody.GetComponent<TerritoryNode>();
-                                if(newTerritory!= currentTerritory && newTerritory.GetCurrentSelection())   // clicked territory is a territory adjacent to selected player territory. (Step 2.)
+                                if(newTerritory!= currentTerritory && newTerritory.GetCurrentSelection())   // clicked territory is a territory adjacent to selected player territory.
                                 {
                                     currentTerritory.DeselectAdjacentTerritories();
-                                    SelectDefendingCountry(newTerritory, false);
+                                    SelectDefendingCountry(newTerritory);
                                     OpenAttackPanel();
                                 }
-                                else if(newTerritory.DisplayOwner() == currentPlayersTurn && newTerritory.DisplaySoldiers() >= 1)    //clicked territory is owned by the player and is eligible to attack (Step 1.)
+                                else if(newTerritory.DisplayOwner() == currentPlayersTurn && newTerritory.DisplaySoldiers() >= 1)    //clicked territory is owned by the player and is eligible to attack
                                 {
                                     currentTerritory.DeselectAdjacentTerritories();
-                                    SelectAttackingCountry(newTerritory, false);
+                                    SelectAttackingCountry(newTerritory);
                                 }
                                 else                                                                        //clicked territory does not qualify as an attacking country or defending country
                                 {
@@ -139,7 +137,7 @@ public class RiskGameMaster : MonoBehaviour {
                                 
                             }
                         }
-                        else if (attackPanel.activeInHierarchy)  //Attack options panel/finalizing the attack.
+                        if (attackPanel.activeInHierarchy)  //Attack options panel/finalizing the attack.
                         {
                             if(currentTerritory.DisplaySoldiers() > 3)
                             {
@@ -151,45 +149,10 @@ public class RiskGameMaster : MonoBehaviour {
                             attackDice.text = attackSlider.value.ToString();
                         }
                         break;
-//################## FORTIFY ##########################//
                     case TURN_PHASE.FORTIFY:
-                        if (!didOnce)
-                        {
-                            reinforceUI.SetActive(false);
-                            attackUI.SetActive(false);
-                            fortifyUI.SetActive(true);
-                            didOnce = true;
-                        }
-                        if(!fortified && Input.GetMouseButtonDown(0) && !attackPanel.activeInHierarchy && currentPlayersTurn != -1)
-                        {
-                            RaycastHit2D mouseCast2D = Physics2D.GetRayIntersection(Camera.main.ScreenPointToRay(Input.mousePosition), 100, 1 << LayerMask.NameToLayer("Territory"));
-                            if (mouseCast2D)
-                            {
-                                TerritoryNode newTerritory = mouseCast2D.rigidbody.GetComponent<TerritoryNode>();
-                                if (newTerritory != currentTerritory && newTerritory.GetCurrentSelection())   // clicked territory is a territory adjacent to selected player territory.
-                                {
-                                    currentTerritory.DeselectAdjacentTerritories();
-                                    SelectDefendingCountry(newTerritory, true);
-                                    OpenAttackPanel();
-
-                                }
-                                else if (newTerritory.DisplayOwner() == currentPlayersTurn && newTerritory.DisplaySoldiers() >= 1)
-                                {
-                                    currentTerritory.DeselectAdjacentTerritories();
-                                    SelectAttackingCountry(newTerritory, true);
-                                }
-                                else
-                                {
-                                    currentTerritory.DeselectAdjacentTerritories();
-                                }
-                              
-                            }
-                        }
-                        else if (attackPanel.activeInHierarchy)
-                        {
-                            attackSlider.maxValue = currentTerritory.DisplaySoldiers() - 1;
-                            attackDice.text = attackSlider.value.ToString();
-                        }
+                        reinforceUI.SetActive(false);
+                        attackUI.SetActive(false);
+                        fortifyUI.SetActive(true);
                         break;
                     default:
                         Debug.Log("Its just a phase....");                        break;
@@ -331,26 +294,18 @@ public class RiskGameMaster : MonoBehaviour {
             currentPlayersTurn = 0;
         }
         currentPhase = TURN_PHASE.RECRUIT;
-        fortified = false;
         didOnce = false;
     }
-    private void SelectAttackingCountry(TerritoryNode attacker, bool friendly)   //Highlights the active Territory, before querrying it's adjacentTerritories. Used for both Attacking and fortifying
+    private void SelectAttackingCountry(TerritoryNode attacker)   //Highlights the active Territory, before querrying it's adjacentTerritories.
     {
         attackingCountry.text = attacker.name;
         attackingSoldierCount.text = attacker.DisplaySoldiers().ToString();
-        attacker.HighlightAdjacentTerritories(friendly);
+        attacker.HighlightAdjacentTerritories();
         currentTerritory = attacker;
     }
-    private void SelectDefendingCountry(TerritoryNode defender, bool friendly)
+    private void SelectDefendingCountry(TerritoryNode defender)
     {
-        if (friendly)
-        {
-            defender.outline.color = Color.blue;
-        }
-        else
-        {
-            defender.outline.color = Color.red;
-        }
+        defender.outline.color = Color.red;
         defendingCountry.text = defender.name;
         defendingSoldierCount.text = defender.DisplaySoldiers().ToString();
         defendingTerritory = defender;
@@ -359,87 +314,77 @@ public class RiskGameMaster : MonoBehaviour {
 
     public void AttackButton() //Dice Rolling Algorithm
     {
-        switch (currentPhase)
+        int defendersLost = 0;
+        int attackersLost = 0;
+        int numAttackingDice = (int)attackSlider.value;
+        int numDefendingDice = 0;
+
+        
+
+        if (defendingTerritory.DisplaySoldiers() == 1 || numAttackingDice == 1)
+            numDefendingDice = 1;
+        else
+            numDefendingDice = 2;
+        int[] attackDiceRoll = new int[numAttackingDice];
+        int[] defendDiceRoll = new int[numDefendingDice];
+
+        for (int i = 0; i < numAttackingDice; i++)
         {
-            case TURN_PHASE.ATTACK:
-                int defendersLost = 0;
-                int attackersLost = 0;
-                int numAttackingDice = (int)attackSlider.value;
-                int numDefendingDice = 0;
+            attackingDice[i].SetActive(true);
+            attackingDice[i].GetComponent<RiskDie>().Roll();
+            attackDiceRoll[i] = attackingDice[i].GetComponent<RiskDie>().GetTopFace();
+        }
+        for (int i = 0; i < numDefendingDice; i++)
+        {
+            defendingDice[i].SetActive(true);
+            defendingDice[i].GetComponent<RiskDie>().Roll();
+            defendDiceRoll[i] = defendingDice[i].GetComponent<RiskDie>().GetTopFace();
+        }
 
-                if (defendingTerritory.DisplaySoldiers() == 1 || numAttackingDice == 1)
-                    numDefendingDice = 1;
-                else
-                    numDefendingDice = 2;
+        //Sort dice in descending order to ensure the dice match properly
+        SortIntArrayDesc(attackDiceRoll);
+        SortIntArrayDesc(defendDiceRoll);
 
-                int[] attackDiceRoll = new int[numAttackingDice];
-                int[] defendDiceRoll = new int[numDefendingDice];
+        for (int i = 0; i < numDefendingDice; i++)
+        {
+            if (attackDiceRoll[i] > defendDiceRoll[i])
+            {
+                defendersLost++;
 
-                for (int i = 0; i < numAttackingDice; i++)
-                {
-                    attackingDice[i].SetActive(true);
-                    attackingDice[i].GetComponent<RiskDie>().Roll();
-                    attackDiceRoll[i] = attackingDice[i].GetComponent<RiskDie>().GetTopFace();
-                }
-                for (int i = 0; i < numDefendingDice; i++)
-                {
-                    defendingDice[i].SetActive(true);
-                    defendingDice[i].GetComponent<RiskDie>().Roll();
-                    defendDiceRoll[i] = defendingDice[i].GetComponent<RiskDie>().GetTopFace();
-                }
+                GameObject explode = CFX_SpawnSystem.GetNextObject(explosionPrefab, false); //WarFX by JMO
+                Vector3 exPos = defendingTerritory.transform.position;
+                exPos.z = 1.1f;
+                explode.transform.position = exPos;
+                explode.SetActive(true);
 
-                //Sort dice in descending order to ensure the dice match properly
-                SortIntArrayDesc(attackDiceRoll);
-                SortIntArrayDesc(defendDiceRoll);
+                Debug.Log("Attacker: " + attackDiceRoll[i] + " beats defender: " + defendDiceRoll[i]);
+            }
+            else
+            {
+                attackersLost++;
 
-                for (int i = 0; i < numDefendingDice; i++)  // Number of attacking dice is irrelevant to
-                {
-                    if (attackDiceRoll[i] > defendDiceRoll[i])
-                    {
-                        defendersLost++;
-                        Debug.Log("Attacker: " + attackDiceRoll[i] + " beats defender: " + defendDiceRoll[i]);
+                GameObject explode = CFX_SpawnSystem.GetNextObject(explosionPrefab, false); //WarFX by JMO
+                Vector3 exPos = currentTerritory.transform.position;
+                exPos.z = 1.1f;
+                explode.transform.position = exPos;
+                explode.SetActive(true);
+                Debug.Log("Defender: " + defendDiceRoll[i] + " beats attacker: " + attackDiceRoll[i]);
+            }
+        }
+        defendingTerritory.AdjustSoldiers(-defendersLost);
+        currentTerritory.AdjustSoldiers(-attackersLost);
+        Debug.Log("Defender loses " + defendersLost + " soldiers");
+        Debug.Log("Attacker loses " + attackersLost + " soldiers");
 
-                        //WarFX by JMO
-                        GameObject explode = CFX_SpawnSystem.GetNextObject(explosionPrefab, false);
-                        Vector3 exPos = defendingTerritory.transform.position;
-                        exPos.z = 1.1f;
-                        explode.transform.position = exPos;
-                        explode.SetActive(true);
-                    }
-                    else
-                    {
-                        attackersLost++;
-                        Debug.Log("Defender: " + defendDiceRoll[i] + " beats attacker: " + attackDiceRoll[i]);
-
-                        //WarFX by JMO
-                        GameObject explode = CFX_SpawnSystem.GetNextObject(explosionPrefab, false);
-                        Vector3 exPos = currentTerritory.transform.position;
-                        exPos.z = 1.1f;
-                        explode.transform.position = exPos;
-                        explode.SetActive(true);
-                    }
-                }
-                defendingTerritory.AdjustSoldiers(-defendersLost);
-                currentTerritory.AdjustSoldiers(-attackersLost);
-                Debug.Log("Defender loses " + defendersLost + " soldiers");
-                Debug.Log("Attacker loses " + attackersLost + " soldiers");
-
-                //Annex territory, set all properties necessary for the new owner
-                if (defendingTerritory.DisplaySoldiers() == 0)
-                {
-                    currentTerritory.AdjustSoldiers(-numAttackingDice);
-                    currentPlayers[defendingTerritory.DisplayOwner()].RemoveTerritory(defendingTerritory);
-                    currentPlayers[currentPlayersTurn].AddTerritory(defendingTerritory);
-                    defendingTerritory.SetOwner(currentTerritory.DisplayOwner());
-                    defendingTerritory.SetColor(currentPlayers[currentPlayersTurn].armyColour);
-                    defendingTerritory.SetSoldiers(numAttackingDice);
-                }
-                break;
-            case TURN_PHASE.FORTIFY:
-                currentTerritory.AdjustSoldiers((int)-attackSlider.value);
-                defendingTerritory.AdjustSoldiers((int)attackSlider.value);
-                fortified = true;
-                break;
+        //Annex territory, set all properties necessary for the new owner
+        if (defendingTerritory.DisplaySoldiers() == 0)
+        {
+            currentTerritory.AdjustSoldiers(-numAttackingDice);
+            currentPlayers[defendingTerritory.DisplayOwner()].RemoveTerritory(defendingTerritory);
+            currentPlayers[currentPlayersTurn].AddTerritory(defendingTerritory);
+            defendingTerritory.SetOwner(currentTerritory.DisplayOwner());
+            defendingTerritory.SetColor(currentPlayers[currentPlayersTurn].armyColour);
+            defendingTerritory.SetSoldiers(numAttackingDice);
         }
         CloseAttackPanelButton();
     } // end AttackButton()
@@ -464,8 +409,6 @@ public class RiskGameMaster : MonoBehaviour {
                     }
                     break;
                 case TURN_PHASE.FORTIFY:
-                    didOnce = false;
-                    fortified = false;
                     AdvanceTurn();
                     break;
             }
