@@ -65,27 +65,16 @@ public class TerritoryNode : MonoBehaviour {
 		}
 	}
 
-    public void HighlightAdjacentTerritories(bool highlightFriendly)
+    public void HighlightAdjacentTerritories()
     {
         currentSelection = true;
         foreach (TerritoryNode territory in adjacentNodes)
         {
-            if (highlightFriendly)
-            {
-                if (territory.DisplayOwner() == playerOwner)
-                {
-                    territory.SetCurrentSelection(true);
-                    territory.outline.color = Color.blue;
-                    DrawLine(transform.position, territory.transform.position, 1f);
-                }
-            } else
-            {
-                if(territory.DisplayOwner() != playerOwner)
-                {
-                    territory.SetCurrentSelection(true);
-                    territory.outline.color = Color.red;
-                    DrawLine(transform.position, territory.transform.position, 1f);
-                }
+            if (territory.DisplayOwner() != playerOwner)
+            { 
+                territory.SetCurrentSelection(true);
+                territory.outline.color = Color.red;
+                DrawLine(transform.position, territory.transform.position, 1f);
             }
         }
     }
