@@ -11,6 +11,7 @@ public class TerritoryNode : MonoBehaviour {
 	private int soldierCount = 0;
 	private int playerOwner = -1;
     private bool currentSelection = false;
+    private bool friendlySelection = false;
 
 	private Color ownerColour = Color.white;
     public SpriteOutline outline;
@@ -50,7 +51,14 @@ public class TerritoryNode : MonoBehaviour {
     public void SetSoldiers(int newSoldiers) { soldierCount = newSoldiers; }
 	public int DisplaySoldiers(){return soldierCount;}
 
-    public void SetCurrentSelection(bool selection) { currentSelection = selection; }
+    public void SetCurrentSelection(bool selection)
+    {
+        currentSelection = selection;
+        if (!selection)
+        {
+            outline.color = Color.white;
+        }
+    }
     public bool GetCurrentSelection() { return currentSelection; }
 
 	public void SetOwner(int newOwner){ playerOwner = newOwner;}
@@ -65,16 +73,31 @@ public class TerritoryNode : MonoBehaviour {
 		}
 	}
 
-    public void HighlightAdjacentTerritories()
+    public void HighlightAdjacentTerritories(bool highlightFriendlies)
     {
         currentSelection = true;
-        foreach (TerritoryNode territory in adjacentNodes)
+        if (highlightFriendlies)
         {
-            if (territory.DisplayOwner() != playerOwner)
-            { 
-                territory.SetCurrentSelection(true);
-                territory.outline.color = Color.red;
-                DrawLine(transform.position, territory.transform.position, 1f);
+            foreach (TerritoryNode territory in adjacentNodes)
+            {
+                if (territory.DisplayOwner() == playerOwner)
+                {
+                    territory.SetCurrentSelection(true);
+                    territory.outline.color = ownerColour;
+                    DrawLine(transform.position, territory.transform.position, 1f);
+                }
+            }
+        }
+        else
+        {
+            foreach (TerritoryNode territory in adjacentNodes)
+            {
+                if (territory.DisplayOwner() != playerOwner)
+                {
+                    territory.SetCurrentSelection(true);
+                    territory.outline.color = Color.red;
+                    DrawLine(transform.position, territory.transform.position, 1f);
+                }
             }
         }
     }

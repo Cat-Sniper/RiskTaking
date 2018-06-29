@@ -150,9 +150,48 @@ public class RiskGameMaster : MonoBehaviour {
                         }
                         break;
                     case TURN_PHASE.FORTIFY:
-                        reinforceUI.SetActive(false);
-                        attackUI.SetActive(false);
-                        fortifyUI.SetActive(true);
+                        if (!didOnce)
+                        {
+                            reinforceUI.SetActive(false);
+                            attackUI.SetActive(false);
+                            fortifyUI.SetActive(true);
+                        }
+                        if (Input.GetMouseButtonDown(0) && !attackPanel.activeInHierarchy && currentPlayersTurn != -1)  //Mouse Input while the attack options panel is closed
+                        {
+                            RaycastHit2D mouseCast2D = Physics2D.GetRayIntersection(Camera.main.ScreenPointToRay(Input.mousePosition), 100, 1 << LayerMask.NameToLayer("Territory"));
+                            if (mouseCast2D)
+                            {
+                                TerritoryNode newTerritory = mouseCast2D.rigidbody.GetComponent<TerritoryNode>();
+                                if (newTerritory != currentTerritory && newTerritory.GetCurrentSelection())   // clicked territory is a territory adjacent to selected player territory.
+                                {
+                                    currentTerritory.DeselectAdjacentTerritories();
+                                    SelectDefendingCountry(newTerritory);
+                                    OpenAttackPanel();
+                                }
+                                else if (newTerritory.DisplayOwner() == currentPlayersTurn && newTerritory.DisplaySoldiers() >= 1)    //clicked territory is owned by the player and is eligible to attack
+                                {
+                                    currentTerritory.DeselectAdjacentTerritories();
+                                    SelectAttackingCountry(newTerritory);
+                                }
+                                else                                                                        //clicked territory does not qualify as an attacking country or defending country
+                                {
+                                    currentTerritory.DeselectAdjacentTerritories();
+                                }
+
+                            }
+                        }
+                        if (attackPanel.activeInHierarchy)  //Attack options panel/finalizing the attack.
+                        {
+                            if (currentTerritory.DisplaySoldiers() > 3)
+                            {
+                                attackSlider.maxValue = 3;
+                            }
+                            else
+                            {
+                                attackSlider.maxValue = currentTerritory.DisplaySoldiers() - 1;
+                            }
+                            attackDice.text = attackSlider.value.ToString();
+                        }
                         break;
                     default:
                         Debug.Log("Its just a phase....");                        break;
@@ -300,7 +339,7 @@ public class RiskGameMaster : MonoBehaviour {
     {
         attackingCountry.text = attacker.name;
         attackingSoldierCount.text = attacker.DisplaySoldiers().ToString();
-        attacker.HighlightAdjacentTerritories();
+        attacker.HighlightAdjacentTerritories(false);
         currentTerritory = attacker;
     }
     private void SelectDefendingCountry(TerritoryNode defender)
@@ -356,8 +395,6 @@ public class RiskGameMaster : MonoBehaviour {
                 exPos.z = 1.1f;
                 explode.transform.position = exPos;
                 explode.SetActive(true);
-
-                Debug.Log("Attacker: " + attackDiceRoll[i] + " beats defender: " + defendDiceRoll[i]);
             }
             else
             {
@@ -368,7 +405,6 @@ public class RiskGameMaster : MonoBehaviour {
                 exPos.z = 1.1f;
                 explode.transform.position = exPos;
                 explode.SetActive(true);
-                Debug.Log("Defender: " + defendDiceRoll[i] + " beats attacker: " + attackDiceRoll[i]);
             }
         }
         defendingTerritory.AdjustSoldiers(-defendersLost);
@@ -409,11 +445,20 @@ public class RiskGameMaster : MonoBehaviour {
                     }
                     break;
                 case TURN_PHASE.FORTIFY:
-                    AdvanceTurn();
+                    {
+                        AdvanceTurn();
+                    }
                     break;
             }
         }
     }// end NextTurnButton()
+    private void DeselectAllTerritories()
+    {
+        foreach (TerritoryNode terry in allTerritories)
+        {
+            terry.SetCurrentSelection(false);
+        }
+    }
     public void CloseAttackPanelButton() { attackPanel.SetActive(false); }
     public void OpenAttackPanel() { attackPanel.SetActive(true); }
    

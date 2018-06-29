@@ -11,12 +11,13 @@ public class Die : MonoBehaviour {      //Generic Die class, can be used for any
 	}
 
 	public void Roll(){
-		topFace = Random.Range(1, nSides + 1);
+        anim.SetTrigger("DieRoll");
+        int newTop = Random.Range(1, nSides + 1);
+		topFace = newTop;
         anim.SetInteger("DieFace", topFace);
-
 	}
 
 	public void SetNumberOfSides(int sides){ nSides = sides;}
 	public int GetNumberOfSides(){return nSides;}
-    public int GetTopFace() { return topFace; }
+    public int GetTopFace() { return topFace;}
 }
