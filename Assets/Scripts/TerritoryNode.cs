@@ -13,14 +13,17 @@ public class TerritoryNode : MonoBehaviour {
     private bool currentSelection = false;
     private bool friendlySelection = false;
 
-	private Color ownerColour = Color.white;
+	private Color ownerCol = Color.white;
+    private Color enemyCol = Color.red;
+    private Color lineCol = Color.white;
     public SpriteOutline outline;
     private SpriteRenderer sRend;
 	// Use this for initialization
 	void Start () {
         outline = gameObject.GetComponent<SpriteOutline>();
         sRend = gameObject.GetComponent<SpriteRenderer>();
-	}
+        ownerCol = Color.white;
+    }
 	
 	// Update is called once per frame
 	void Update () {
@@ -34,7 +37,7 @@ public class TerritoryNode : MonoBehaviour {
 
         if (soldierCount == 0) {
             playerOwner = -1;
-            ownerColour = Color.white;
+            
         }
 
         if (currentSelection) {
@@ -44,7 +47,7 @@ public class TerritoryNode : MonoBehaviour {
         else {
             outline.outlineSize = 0;
         }
-        sRend.color = ownerColour;
+        sRend.color = ownerCol;
         
     }
     public void AdjustSoldiers(int newSoldiers){ soldierCount += newSoldiers;}
@@ -65,7 +68,7 @@ public class TerritoryNode : MonoBehaviour {
 	public int DisplayOwner() {return playerOwner;}
     public TerritoryNode[] GetAdjacentNodes() { return adjacentNodes; }
 
-	public void SetColor(Color colour){ ownerColour = colour;}
+	public void SetColor(Color colour){ ownerCol = colour;}
 	void OnDrawGizmosSelected(){
 		Gizmos.color = Color.white;
 		for(int i = 0; i < adjacentNodes.Length; i++) {
@@ -83,7 +86,8 @@ public class TerritoryNode : MonoBehaviour {
                 if (territory.DisplayOwner() == playerOwner)
                 {
                     territory.SetCurrentSelection(true);
-                    territory.outline.color = ownerColour;
+                    territory.outline.color = ownerCol;
+                    lineCol = ownerCol;
                     DrawLine(transform.position, territory.transform.position, 1f);
                 }
             }
@@ -95,7 +99,8 @@ public class TerritoryNode : MonoBehaviour {
                 if (territory.DisplayOwner() != playerOwner)
                 {
                     territory.SetCurrentSelection(true);
-                    territory.outline.color = Color.red;
+                    territory.outline.color = enemyCol;
+                    lineCol = enemyCol;
                     DrawLine(transform.position, territory.transform.position, 1f);
                 }
             }
@@ -116,13 +121,16 @@ public class TerritoryNode : MonoBehaviour {
         start.z = 1;
         destination.z = 1;
         GameObject myLine = new GameObject();
-        //myLine.transform.parent = GameObject.Find("Canvas 2 Map Boogaloo").transform;
+        Gradient gradient = new Gradient();
+        gradient.SetKeys(
+            new GradientColorKey[] { new GradientColorKey(ownerCol,0.0f), new GradientColorKey(lineCol,1.0f)},
+            new GradientAlphaKey[] { new GradientAlphaKey(0.5f, 0.0f), new GradientAlphaKey(1.0f,1.0f)}
+            );
         myLine.transform.position = start;
         myLine.AddComponent<LineRenderer>();
         LineRenderer lr = myLine.GetComponent<LineRenderer>();
         lr.material = new Material(Shader.Find("Particles/Alpha Blended Premultiply"));
-        lr.startColor = ownerColour;
-        lr.endColor = Color.red;
+        lr.colorGradient = gradient;
         lr.startWidth = 0.015f;
         lr.endWidth = 0.0001f;
         lr.SetPosition(0, start);

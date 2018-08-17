@@ -130,7 +130,7 @@ public class RiskGameMaster : MonoBehaviour {
                                     attackSlider.minValue = 1;
                                     OpenAttackPanel();
                                 }
-                                else if(newTerritory.DisplayOwner() == currentPlayersTurn && newTerritory.DisplaySoldiers() >= 1)    //clicked territory is owned by the player and is eligible to attack
+                                else if(newTerritory.DisplayOwner() == currentPlayersTurn && newTerritory.DisplaySoldiers() > 1)    //clicked territory is owned by the player and is eligible to attack
                                 {
                                     currentTerritory.DeselectAdjacentTerritories();
                                     SelectAttackingCountry(newTerritory);
@@ -182,7 +182,7 @@ public class RiskGameMaster : MonoBehaviour {
                                     SelectDefendingCountry(newTerritory);
                                     OpenAttackPanel();
                                 }
-                                else if (newTerritory.DisplayOwner() == currentPlayersTurn && newTerritory.DisplaySoldiers() >= 1)    //clicked territory is owned by the player and is eligible to attack
+                                else if (newTerritory.DisplayOwner() == currentPlayersTurn && newTerritory.DisplaySoldiers() > 1)    //clicked territory is owned by the player and is eligible to fortify
                                 {
                                     currentTerritory.DeselectAdjacentTerritories();
                                     SelectAttackingCountry(newTerritory);
@@ -192,6 +192,8 @@ public class RiskGameMaster : MonoBehaviour {
                                     currentTerritory.DeselectAdjacentTerritories();
                                 }
 
+                            } else {
+                                currentTerritory.DeselectAdjacentTerritories();
                             }
                         }
                         if (attackPanel.activeInHierarchy)  //Attack options panel/finalizing the attack.
@@ -328,9 +330,20 @@ public class RiskGameMaster : MonoBehaviour {
     }
 
 	private void CalculateReinforcements(Player playerID) {
+        //Every 3 territories provide a soldier
         int newArmies = 0;
-        newArmies = playerID.GetTerritories().Count / 3;
-        playerID.AddArmies(newArmies);
+        for (int i = 1; i <= playerID.GetTerritories().Count; i++) {
+            if(i % 3 == 0) 
+                newArmies++;
+        }
+        //Continents provide a set # of soldiers
+        foreach(Continent bonusboi in continents) {
+           newArmies += bonusboi.CheckBonus(currentPlayersTurn);
+        }
+        if (newArmies < 3)
+            playerID.AddArmies(3);
+        else
+            playerID.AddArmies(newArmies);
     }
 
    
@@ -432,7 +445,6 @@ public class RiskGameMaster : MonoBehaviour {
             CloseAttackPanelButton();
             //Annex territory, set all properties necessary for the new owner
             if (defendingTerritory.DisplaySoldiers() == 0) {
-                defendingTerritory.SetColor(Color.white);
                 currentPlayers[defendingTerritory.DisplayOwner()].RemoveTerritory(defendingTerritory);
                 attackSlider.minValue = numAttackingDice - attackersLost;
                 territoryConquered = true;
