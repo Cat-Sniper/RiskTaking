@@ -196,14 +196,8 @@ public class RiskGameMaster : MonoBehaviour {
                         }
                         if (attackPanel.activeInHierarchy)  //Attack options panel/finalizing the attack.
                         {
-                            if (currentTerritory.DisplaySoldiers() > 3)
-                            {
-                                attackSlider.maxValue = 3;
-                            }
-                            else
-                            {
-                                attackSlider.maxValue = currentTerritory.DisplaySoldiers() - 1;
-                            }
+                            attackSlider.minValue = 1;
+                            attackSlider.maxValue = currentTerritory.DisplaySoldiers() - 1;
                             attackDice.text = attackSlider.value.ToString();
                         }
                         break;
@@ -354,7 +348,15 @@ public class RiskGameMaster : MonoBehaviour {
     {
         attackingCountry.text = attacker.name;
         attackingSoldierCount.text = attacker.DisplaySoldiers().ToString();
-        attacker.HighlightAdjacentTerritories(false);
+        switch (currentPhase) {
+
+            case (TURN_PHASE.ATTACK):
+                attacker.HighlightAdjacentTerritories(false);  
+                break;
+            case (TURN_PHASE.FORTIFY):
+                attacker.HighlightAdjacentTerritories(true);
+                break;
+        }
         currentTerritory = attacker;
     }
     private void SelectDefendingCountry(TerritoryNode defender)
@@ -368,7 +370,7 @@ public class RiskGameMaster : MonoBehaviour {
 
     public void AttackButton() //Dice Rolling Algorithm
     {
-        if (territoryConquered)
+        if (territoryConquered || currentPhase == TURN_PHASE.FORTIFY)
             MoveTroops();
         else 
             RollDice(); 
@@ -379,61 +381,66 @@ public class RiskGameMaster : MonoBehaviour {
         int numAttackingDice = (int)attackSlider.value;
         int numDefendingDice = 0;
 
-        if (defendingTerritory.DisplaySoldiers() == 1 || numAttackingDice == 1)
-            numDefendingDice = 1;
-        else
-            numDefendingDice = 2;
-        int[] attackDiceRoll = new int[numAttackingDice];
-        int[] defendDiceRoll = new int[numDefendingDice];
+        if (numAttackingDice > 0) {
 
-        for (int i = 0; i < numAttackingDice; i++) {
-            attackingDice[i].SetActive(true);
-            attackingDice[i].GetComponent<RiskDie>().Roll();
-            attackDiceRoll[i] = attackingDice[i].GetComponent<RiskDie>().GetTopFace();
-        }
-        for (int i = 0; i < numDefendingDice; i++) {
-            defendingDice[i].SetActive(true);
-            defendingDice[i].GetComponent<RiskDie>().Roll();
-            defendDiceRoll[i] = defendingDice[i].GetComponent<RiskDie>().GetTopFace();
-        }
+            if (defendingTerritory.DisplaySoldiers() == 1 || numAttackingDice == 1)
+                numDefendingDice = 1;
+            else
+                numDefendingDice = 2;
+            int[] attackDiceRoll = new int[numAttackingDice];
+            int[] defendDiceRoll = new int[numDefendingDice];
 
-        //Sort dice in descending order to ensure the dice match properly
-        SortIntArrayDesc(attackDiceRoll);
-        SortIntArrayDesc(defendDiceRoll);
-
-        for (int i = 0; i < numDefendingDice; i++) {
-            if (attackDiceRoll[i] > defendDiceRoll[i]) {
-                defendersLost++;
-
-                GameObject explode = CFX_SpawnSystem.GetNextObject(explosionPrefab, false); //WarFX by JMO
-                Vector3 exPos = defendingTerritory.transform.position;
-                exPos.z = 1.1f;
-                explode.transform.position = exPos;
-                explode.SetActive(true);
-            } else {
-                attackersLost++;
-
-                GameObject explode = CFX_SpawnSystem.GetNextObject(explosionPrefab, false); //WarFX by JMO
-                Vector3 exPos = currentTerritory.transform.position;
-                exPos.z = 1.1f;
-                explode.transform.position = exPos;
-                explode.SetActive(true);
+            for (int i = 0; i < numAttackingDice; i++) {
+                attackingDice[i].SetActive(true);
+                attackingDice[i].GetComponent<RiskDie>().Roll();
+                attackDiceRoll[i] = attackingDice[i].GetComponent<RiskDie>().GetTopFace();
             }
-        }
-        defendingTerritory.AdjustSoldiers(-defendersLost);
-        currentTerritory.AdjustSoldiers(-attackersLost);
-        Debug.Log("Defender loses " + defendersLost + " soldiers");
-        Debug.Log("Attacker loses " + attackersLost + " soldiers");
+            for (int i = 0; i < numDefendingDice; i++) {
+                defendingDice[i].SetActive(true);
+                defendingDice[i].GetComponent<RiskDie>().Roll();
+                defendDiceRoll[i] = defendingDice[i].GetComponent<RiskDie>().GetTopFace();
+            }
 
-        CloseAttackPanelButton();
-        //Annex territory, set all properties necessary for the new owner
-        if (defendingTerritory.DisplaySoldiers() == 0) {
-            defendingTerritory.SetColor(Color.white);
-            currentPlayers[defendingTerritory.DisplayOwner()].RemoveTerritory(defendingTerritory);
-            attackSlider.minValue = numAttackingDice - attackersLost;
-            territoryConquered = true;
+            //Sort dice in descending order to ensure the dice match properly
+            SortIntArrayDesc(attackDiceRoll);
+            SortIntArrayDesc(defendDiceRoll);
+
+            for (int i = 0; i < numDefendingDice; i++) {
+                if (attackDiceRoll[i] > defendDiceRoll[i]) {
+                    defendersLost++;
+
+                    GameObject explode = CFX_SpawnSystem.GetNextObject(explosionPrefab, false); //WarFX by JMO
+                    Vector3 exPos = defendingTerritory.transform.position;
+                    exPos.z = 1.1f;
+                    explode.transform.position = exPos;
+                    explode.SetActive(true);
+                } else {
+                    attackersLost++;
+
+                    GameObject explode = CFX_SpawnSystem.GetNextObject(explosionPrefab, false); //WarFX by JMO
+                    Vector3 exPos = currentTerritory.transform.position;
+                    exPos.z = 1.1f;
+                    explode.transform.position = exPos;
+                    explode.SetActive(true);
+                }
+            }
+            defendingTerritory.AdjustSoldiers(-defendersLost);
+            currentTerritory.AdjustSoldiers(-attackersLost);
+            Debug.Log("Defender loses " + defendersLost + " soldiers");
+            Debug.Log("Attacker loses " + attackersLost + " soldiers");
+
+            CloseAttackPanelButton();
+            //Annex territory, set all properties necessary for the new owner
+            if (defendingTerritory.DisplaySoldiers() == 0) {
+                defendingTerritory.SetColor(Color.white);
+                currentPlayers[defendingTerritory.DisplayOwner()].RemoveTerritory(defendingTerritory);
+                attackSlider.minValue = numAttackingDice - attackersLost;
+                territoryConquered = true;
+            }
+
+        } else {
+            CloseAttackPanelButton();
         }
-        
     } // end RollDice()
 
     private void MoveTroops() {
