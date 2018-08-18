@@ -9,8 +9,10 @@ public class RiskDie : Die {
     private bool canFight = true;
     private bool wonFight = false;
     private SpriteRenderer sprRend;
-	// Use this for initialization
-	void Awake () {
+    private float rollTimer = 0.0f;
+    
+    // Use this for initialization
+    void Awake () {
         sprRend = gameObject.GetComponent<SpriteRenderer>();
         if(dieType == DieType.ATTACKER)
         {
@@ -23,7 +25,16 @@ public class RiskDie : Die {
 	
 	// Update is called once per frame
 	void Update () {
-		
+        if (startedRoll) {
+            rollTimer += Time.deltaTime;
+        }
+
+        if(rollTimer > 3.0f) {
+            rollTimer = 0.0f;
+            startedRoll = false;
+            gameObject.SetActive(false);
+        }
+
 	}
 
     public bool GetCanFight() { return canFight; }

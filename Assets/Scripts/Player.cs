@@ -8,12 +8,14 @@ public class Player : MonoBehaviour {
     private TerritoryCard[] currentCards;
     private int heldArmies = 0;
     public Color armyColour = Color.white;
+    public bool alive = false;
 
     private GameObject playerInfoUI;
     // Use this for initialization after game mode is picked
     public void InitializePlayer() {
         playerInfoUI = GameObject.Find(gameObject.name + "info");
         currentTerritories = new List<TerritoryNode>();
+        alive = true;
     }
 
     // Update is called once per frame

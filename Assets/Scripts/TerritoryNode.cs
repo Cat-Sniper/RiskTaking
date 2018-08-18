@@ -11,7 +11,7 @@ public class TerritoryNode : MonoBehaviour {
 	private int soldierCount = 0;
 	private int playerOwner = -1;
     private bool currentSelection = false;
-    private bool friendlySelection = false;
+   // private bool friendlySelection = false;
 
 	private Color ownerCol = Color.white;
     private Color enemyCol = Color.red;
