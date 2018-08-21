@@ -28,6 +28,8 @@ public class RiskGameMaster : MonoBehaviour {
     private Text turnInfo;
     private Text phaseInfoTxt;
     private Image turnInfoCol;
+    private Image attackingCol;
+    private Image defendingCol;
     public GameObject setupPanel;
     private GameObject attackUI;
     private GameObject fortifyUI;
@@ -44,6 +46,7 @@ public class RiskGameMaster : MonoBehaviour {
     private Text attackingSoldierCount;
     private Text defendingCountry;
     private Text defendingSoldierCount;
+    private Text attackButton;
 
     [SerializeField] private GameObject[] attackingDice;
     [SerializeField] private GameObject[] defendingDice;
@@ -56,6 +59,8 @@ public class RiskGameMaster : MonoBehaviour {
         turnInfo = GameObject.Find("Current Turn").GetComponent<Text>();
         phaseInfoTxt = GameObject.Find("Current Phase").GetComponent<Text>();
         turnInfoCol = turnInfo.gameObject.GetComponentInChildren<Image>();
+        attackingCol = GameObject.Find("AttackerColour").GetComponent<Image>();
+        defendingCol = GameObject.Find("DefenderColour").GetComponent<Image>();
         attackUI = GameObject.Find("UI - Attack");
         attackPanel = GameObject.Find("UI - AttackSelection");
         fortifyUI = GameObject.Find("UI - Fortification");
@@ -66,11 +71,13 @@ public class RiskGameMaster : MonoBehaviour {
         defendingCountry = GameObject.Find("DefendingCountry").GetComponent<Text>();
         defendingSoldierCount = GameObject.Find("DefendingSoldierCount").GetComponent<Text>();
         turnButton = GameObject.Find("End Turn Button");
+        attackButton = GameObject.Find("AttackButtonText").GetComponent<Text>();
         attackSlider = GameObject.Find("SoldierSlider").GetComponent<Slider>();
         attackUI.SetActive(false);
         fortifyUI.SetActive(false);
         reinforceUI.SetActive(false);
         attackPanel.SetActive(false);
+        
     }
 	
 	// Update is called once per frame
@@ -144,6 +151,7 @@ public class RiskGameMaster : MonoBehaviour {
                                     currentTerritory.DeselectAdjacentTerritories();
                             }
                         } else if (territoryConquered) {
+                            attackButton.text = "Move";
                             attackSlider.maxValue = currentTerritory.DisplaySoldiers() - 1;
                             attackDice.text = attackSlider.value.ToString();
 
@@ -151,7 +159,8 @@ public class RiskGameMaster : MonoBehaviour {
                                 OpenAttackPanel();
                         }
                         if (attackPanel.activeInHierarchy && !territoryConquered)  //Attack options panel/finalizing the attack.
-                        {  
+                        {
+                            attackButton.text = "Attack!";
                             if(currentTerritory.DisplaySoldiers() > 3)
                                 attackSlider.maxValue = 3;
                             else
@@ -192,6 +201,7 @@ public class RiskGameMaster : MonoBehaviour {
                         }
                         if (attackPanel.activeInHierarchy)  //Fortify options panel. (repurposed attack options panel)                          
                         {
+                            attackButton.text = "Fortify";
                             attackSlider.minValue = 1;
                             attackSlider.maxValue = currentTerritory.DisplaySoldiers() - 1;
                             attackDice.text = attackSlider.value.ToString();
@@ -250,13 +260,17 @@ public class RiskGameMaster : MonoBehaviour {
             int uITurnInfo = currentPlayersTurn + 1;
             turnInfo.text = "Player " + uITurnInfo + "'s Turn!";
             turnInfoCol.color = currentPlayers[currentPlayersTurn].armyColour;
-
         } //end of gameplay
 	}
 
     private void FixedUpdate() {
         if(!setup)
             CheckPlayers();
+        if (attackPanel.activeInHierarchy) {
+            attackingSoldierCount.text = (currentTerritory.DisplaySoldiers() - (int)attackSlider.value).ToString();
+            if(currentPhase == TURN_PHASE.FORTIFY || territoryConquered)
+                defendingSoldierCount.text = (defendingTerritory.DisplaySoldiers() + (int)attackSlider.value).ToString();
+        }
     }
 
     public void SetupGame(int nPlayers){
@@ -315,9 +329,16 @@ public class RiskGameMaster : MonoBehaviour {
         phaseInfoTxt.text = "Pick an unclaimed territory (white)";
         activePlayers = nPlayers;
 
+        //Initialize Game Objects
         foreach (TerritoryNode node in allTerritories)
             node.SetSoldiers(0);
         optionsSelected = true;
+        foreach (GameObject die in attackingDice) {
+            die.SetActive(false);
+        }
+        foreach (GameObject die in defendingDice) {
+            die.SetActive(false);
+        }
     }
 
 	private void CalculateReinforcements(Player playerID) {
@@ -371,13 +392,14 @@ public class RiskGameMaster : MonoBehaviour {
                 break;
         }
         currentTerritory = attacker;
+        attackingCol.color = currentPlayers[currentTerritory.DisplayOwner()].armyColour;
     }
     private void SelectDefendingCountry(TerritoryNode defender) {
         defender.outline.color = Color.red;
         defendingCountry.text = defender.name;
         defendingSoldierCount.text = defender.DisplaySoldiers().ToString();
         defendingTerritory = defender;
-        
+        defendingCol.color = currentPlayers[defendingTerritory.DisplayOwner()].armyColour;
     }
 
     public void AttackButton() {
@@ -450,6 +472,9 @@ public class RiskGameMaster : MonoBehaviour {
                 currentPlayers[defendingTerritory.DisplayOwner()].RemoveTerritory(defendingTerritory);
                 attackSlider.minValue = numAttackingDice - attackersLost;
                 territoryConquered = true;
+                defendingTerritory.SetOwner(currentTerritory.DisplayOwner());
+                defendingTerritory.SetColor(currentPlayers[currentPlayersTurn].armyColour);
+                defendingCol.color = currentPlayers[defendingTerritory.DisplayOwner()].armyColour;
             }
 
         } else {
@@ -462,8 +487,6 @@ public class RiskGameMaster : MonoBehaviour {
         currentTerritory.AdjustSoldiers(-soldiers);
         currentPlayers[currentPlayersTurn].AddTerritory(defendingTerritory);
         defendingTerritory.AdjustSoldiers(soldiers);
-        defendingTerritory.SetOwner(currentTerritory.DisplayOwner());
-        defendingTerritory.SetColor(currentPlayers[currentPlayersTurn].armyColour);
         territoryConquered = false;
         currentTerritory.DeselectAdjacentTerritories();
         CloseAttackPanelButton();
