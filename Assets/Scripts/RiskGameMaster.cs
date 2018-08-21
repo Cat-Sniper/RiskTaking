@@ -28,6 +28,7 @@ public class RiskGameMaster : MonoBehaviour {
     private Text turnInfo;
     private Text phaseInfoTxt;
     private Image turnInfoCol;
+    private Image border;
     private Image attackingCol;
     private Image defendingCol;
     public GameObject setupPanel;
@@ -59,6 +60,7 @@ public class RiskGameMaster : MonoBehaviour {
         turnInfo = GameObject.Find("Current Turn").GetComponent<Text>();
         phaseInfoTxt = GameObject.Find("Current Phase").GetComponent<Text>();
         turnInfoCol = turnInfo.gameObject.GetComponentInChildren<Image>();
+        border = GameObject.Find("Border").GetComponent<Image>();
         attackingCol = GameObject.Find("AttackerColour").GetComponent<Image>();
         defendingCol = GameObject.Find("DefenderColour").GetComponent<Image>();
         attackUI = GameObject.Find("UI - Attack");
@@ -129,35 +131,30 @@ public class RiskGameMaster : MonoBehaviour {
                             fortifyUI.SetActive(false);
                             didOnce = true;
                         }
-                        if (Input.GetMouseButtonDown(0) && !attackPanel.activeInHierarchy && currentPlayersTurn != -1)  //Mouse Input while the attack options panel is closed
-                        {
+                        if (territoryConquered) {
+                            attackButton.text = "Move";
+                            attackSlider.maxValue = currentTerritory.DisplaySoldiers() - 1;
+                            attackDice.text = attackSlider.value.ToString();
+                            if (!attackPanel.activeInHierarchy)
+                                OpenAttackPanel();
+                        } else if (Input.GetMouseButtonDown(0) && !attackPanel.activeInHierarchy && currentPlayersTurn != -1) {  //Mouse Input while the attack options panel is closed
                             RaycastHit2D mouseCast2D = Physics2D.GetRayIntersection(Camera.main.ScreenPointToRay(Input.mousePosition), 100, 1 << LayerMask.NameToLayer("Territory"));
-                            if (mouseCast2D)
-                            {
+                            if (mouseCast2D) {
                                 TerritoryNode newTerritory = mouseCast2D.rigidbody.GetComponent<TerritoryNode>();
-                                if(newTerritory!= currentTerritory && newTerritory.GetCurrentSelection())   // clicked territory is a territory adjacent to selected player territory.
-                                {
+                                if(newTerritory!= currentTerritory && newTerritory.GetCurrentSelection()) { // clicked territory is a territory adjacent to selected player territory.
                                     currentTerritory.DeselectAdjacentTerritories();
                                     SelectDefendingCountry(newTerritory);
                                     attackSlider.minValue = 1;
                                     OpenAttackPanel();
                                 }
-                                else if(newTerritory.DisplayOwner() == currentPlayersTurn && newTerritory.DisplaySoldiers() > 1)    //clicked territory is owned by the player and is eligible to attack
-                                {
+                                else if(newTerritory.DisplayOwner() == currentPlayersTurn && newTerritory.DisplaySoldiers() > 1) {  //clicked territory is owned by the player and is eligible to attack
                                     currentTerritory.DeselectAdjacentTerritories();
                                     SelectAttackingCountry(newTerritory);
                                 }
                                 else                                                                        //clicked territory does not qualify as an attacking country or defending country
                                     currentTerritory.DeselectAdjacentTerritories();
                             }
-                        } else if (territoryConquered) {
-                            attackButton.text = "Move";
-                            attackSlider.maxValue = currentTerritory.DisplaySoldiers() - 1;
-                            attackDice.text = attackSlider.value.ToString();
-
-                            if (!attackPanel.activeInHierarchy)
-                                OpenAttackPanel();
-                        }
+                        } 
                         if (attackPanel.activeInHierarchy && !territoryConquered)  //Attack options panel/finalizing the attack.
                         {
                             attackButton.text = "Attack!";
@@ -260,6 +257,7 @@ public class RiskGameMaster : MonoBehaviour {
             int uITurnInfo = currentPlayersTurn + 1;
             turnInfo.text = "Player " + uITurnInfo + "'s Turn!";
             turnInfoCol.color = currentPlayers[currentPlayersTurn].armyColour;
+            border.color = currentPlayers[currentPlayersTurn].armyColour;
         } //end of gameplay
 	}
 
@@ -278,7 +276,7 @@ public class RiskGameMaster : MonoBehaviour {
         activePlayers = nPlayers;
         for (int i = 0; i < territories; i++) {
             allTerritories[i] = GameObject.FindGameObjectsWithTag("Map")[i].GetComponent<TerritoryNode>();
-            allTerritories[i].GetComponent<SpriteRenderer>().color = Color.white;
+            allTerritories[i].SetColor(Color.white);
         }
         currentPlayers = new Player[nPlayers];
 		for(int i = 1; i <= nPlayers; i++)                                                //start counter at 1 to match up with player number before
@@ -470,11 +468,11 @@ public class RiskGameMaster : MonoBehaviour {
             //Annex territory, set all properties necessary for the new owner
             if (defendingTerritory.DisplaySoldiers() == 0) {
                 currentPlayers[defendingTerritory.DisplayOwner()].RemoveTerritory(defendingTerritory);
+                currentPlayers[currentPlayersTurn].AddTerritory(defendingTerritory);
                 attackSlider.minValue = numAttackingDice - attackersLost;
-                territoryConquered = true;
-                defendingTerritory.SetOwner(currentTerritory.DisplayOwner());
                 defendingTerritory.SetColor(currentPlayers[currentPlayersTurn].armyColour);
-                defendingCol.color = currentPlayers[defendingTerritory.DisplayOwner()].armyColour;
+                defendingCol.color = currentPlayers[currentPlayersTurn].armyColour;
+                territoryConquered = true;
             }
 
         } else {
@@ -483,11 +481,11 @@ public class RiskGameMaster : MonoBehaviour {
     } // end RollDice()
 
     private void MoveTroops() {
+        territoryConquered = false;
         int soldiers = (int)attackSlider.value;
         currentTerritory.AdjustSoldiers(-soldiers);
-        currentPlayers[currentPlayersTurn].AddTerritory(defendingTerritory);
         defendingTerritory.AdjustSoldiers(soldiers);
-        territoryConquered = false;
+        defendingTerritory.SetOwner(currentPlayersTurn);
         currentTerritory.DeselectAdjacentTerritories();
         CloseAttackPanelButton();
     }

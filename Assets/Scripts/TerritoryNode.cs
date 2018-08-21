@@ -4,12 +4,10 @@ using UnityEngine.UI;
 
 public class TerritoryNode : MonoBehaviour {
 
-	[SerializeField]
-	private TerritoryNode[] adjacentNodes;
-    [SerializeField]
-    private Text[] soldierDisplay;
+	[SerializeField]private TerritoryNode[] adjacentNodes;
+    [SerializeField]private Text[] soldierDisplay;
 	private int soldierCount = 0;
-	private int playerOwner = -1;
+	public int playerOwner = -1;
     private bool currentSelection = false;
    // private bool friendlySelection = false;
 
@@ -17,11 +15,10 @@ public class TerritoryNode : MonoBehaviour {
     private Color enemyCol = Color.red;
     private Color lineCol = Color.white;
     public SpriteOutline outline;
-    private SpriteRenderer sRend;
+    [SerializeField]private SpriteRenderer sRend;
 	// Use this for initialization
 	void Start () {
         outline = gameObject.GetComponent<SpriteOutline>();
-        sRend = gameObject.GetComponent<SpriteRenderer>();
         ownerCol = Color.white;
     }
 	
@@ -42,6 +39,7 @@ public class TerritoryNode : MonoBehaviour {
 
         if (currentSelection) {
             outline.outlineSize = 5;
+            outline.color = ownerCol;
             
         }
         else {
@@ -59,7 +57,9 @@ public class TerritoryNode : MonoBehaviour {
         currentSelection = selection;
         if (!selection)
         {
-            outline.color = Color.white;
+          //  outline.color = Color.white;
+        } else {
+            outline.color = ownerCol;
         }
     }
     public bool GetCurrentSelection() { return currentSelection; }
@@ -85,7 +85,7 @@ public class TerritoryNode : MonoBehaviour {
             {
                 if (territory.DisplayOwner() == playerOwner)
                 {
-                    territory.SetCurrentSelection(true);
+                    territory.SetCurrentSelection(currentSelection);
                     territory.outline.color = ownerCol;
                     lineCol = ownerCol;
                     DrawLine(transform.position, territory.transform.position, 1f);
@@ -111,8 +111,7 @@ public class TerritoryNode : MonoBehaviour {
         currentSelection = false;
         foreach(TerritoryNode territory in adjacentNodes)
         {
-            territory.SetCurrentSelection(false);
-            territory.outline.color = Color.white;
+            territory.SetCurrentSelection(currentSelection);
         }
     }
 
