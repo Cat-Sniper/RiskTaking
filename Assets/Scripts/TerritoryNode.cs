@@ -15,12 +15,14 @@ public class TerritoryNode : MonoBehaviour {
 	private Color ownerCol = Color.white;
     private Color enemyCol = Color.red;
     private Color lineCol = Color.white;
+    private Material circleMat;
     public SpriteOutline outline;
     [SerializeField]private SpriteRenderer sRend;
 	// Use this for initialization
 	void Start () {
         outline = gameObject.GetComponent<SpriteOutline>();
         ownerCol = Color.white;
+        circleMat = sRend.material;
     }
 	
 	// Update is called once per frame
@@ -48,6 +50,7 @@ public class TerritoryNode : MonoBehaviour {
         }
         ownerCol.a = 0.8f;
         sRend.color = ownerCol;
+        circleMat.color = ownerCol;
         
     }
     public void AdjustSoldiers(int newSoldiers){ soldierCount += newSoldiers;}
