@@ -9,6 +9,7 @@ public class TerritoryNode : MonoBehaviour {
 	private int soldierCount = 0;
 	public int playerOwner = -1;
     private bool currentSelection = false;
+    private Continent continent;
    // private bool friendlySelection = false;
 
 	private Color ownerCol = Color.white;
@@ -45,6 +46,7 @@ public class TerritoryNode : MonoBehaviour {
         else {
             outline.outlineSize = 0;
         }
+        ownerCol.a = 0.8f;
         sRend.color = ownerCol;
         
     }
@@ -63,6 +65,8 @@ public class TerritoryNode : MonoBehaviour {
         }
     }
     public bool GetCurrentSelection() { return currentSelection; }
+    public Continent GetContinent() { return continent; }
+    public void SetContinent(Continent con) { continent = con; }
 
 	public void SetOwner(int newOwner){ playerOwner = newOwner;}
 	public int DisplayOwner() {return playerOwner;}

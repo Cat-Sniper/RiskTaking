@@ -229,6 +229,9 @@ public class RiskGameMaster : MonoBehaviour {
                                 currentTerritory.SetOwner(currentPlayersTurn);
                                 unclaimedTerritories -= 1;
 
+                                if (currentTerritory.GetContinent().CheckBonus(currentPlayersTurn)) 
+                                    currentTerritory.GetContinent().UpdateBorderColour(GetCurrentPlayer().armyColour);
+                                
                                 if (unclaimedTerritories <= 0){
                                     allTsClaimed = true;
                                     phaseInfoTxt.text = "Reinforce claimed territories";
@@ -262,7 +265,7 @@ public class RiskGameMaster : MonoBehaviour {
 	}
 
     private void FixedUpdate() {
-        if(!setup)
+        if (!setup) 
             CheckPlayers();
         if (attackPanel.activeInHierarchy) {
             attackingSoldierCount.text = (currentTerritory.DisplaySoldiers() - (int)attackSlider.value).ToString();
@@ -347,8 +350,11 @@ public class RiskGameMaster : MonoBehaviour {
                 newArmies++;
         }
         //Continents provide a set # of soldiers
-        foreach(Continent bonusboi in continents) 
-           newArmies += bonusboi.CheckBonus(currentPlayersTurn);
+        foreach(Continent bonusboi in continents)
+            if (bonusboi.CheckBonus(currentPlayersTurn)) {
+                newArmies += bonusboi.Value;
+            }
+           
         if (newArmies < 3)
             playerID.AddArmies(3);
         else
@@ -487,6 +493,11 @@ public class RiskGameMaster : MonoBehaviour {
         defendingTerritory.AdjustSoldiers(soldiers);
         defendingTerritory.SetOwner(currentPlayersTurn);
         currentTerritory.DeselectAdjacentTerritories();
+
+        if (defendingTerritory.GetContinent().CheckBonus(currentPlayersTurn)) {
+            defendingTerritory.GetContinent().UpdateBorderColour(GetCurrentPlayer().armyColour);
+        } else
+            defendingTerritory.GetContinent().ResetBorderColour();
         CloseAttackPanelButton();
     }
     public void NextTurnButton() {
@@ -524,4 +535,6 @@ public class RiskGameMaster : MonoBehaviour {
                return b - a;
            });
     }
+
+    public Player GetCurrentPlayer() { return currentPlayers[currentPlayersTurn]; }
 }
