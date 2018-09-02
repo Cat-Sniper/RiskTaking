@@ -2,18 +2,17 @@
 using System.Collections;
 
 public class TerritoryCard : MonoBehaviour {
-	enum ARMY_DENOMINATIONS{INFANTRY, CAVALRY, ARTILLERY};
+	enum ARMY_DENOMINATIONS{WILD, INFANTRY, CAVALRY, ARTILLERY};
 
-
-	private TerritoryNode territory;
 	private ARMY_DENOMINATIONS type;
-	// Use this for initialization
-	void Start () {
-	
-	}
-	
-	// Update is called once per frame
-	void Update () {
-	
-	}
+    public void SetArmy(int army) { type = (ARMY_DENOMINATIONS)army; }
+    public int GetArmyType() { return (int)type; }
+
+    private TerritoryNode territory;
+    public void SetTerritory(TerritoryNode terry) { territory = terry; }
+    public TerritoryNode GetTerritory() { return territory; }
+
+    private Sprite sprterritory;
+    private Sprite sprArmy;
+    private string TerritoryName;
 }

@@ -15,6 +15,7 @@ public class RiskGameMaster : MonoBehaviour {
 
     public Continent[] continents;
     private TerritoryNode[] allTerritories;
+    private TerritoryCard[] allCards;
     private TerritoryNode currentTerritory;
     private TerritoryNode defendingTerritory;
     private int unclaimedTerritories = 43;

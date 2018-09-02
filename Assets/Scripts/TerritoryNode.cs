@@ -5,7 +5,7 @@ using UnityEngine.UI;
 public class TerritoryNode : MonoBehaviour {
 
 	[SerializeField]private TerritoryNode[] adjacentNodes;
-    [SerializeField]private Text[] soldierDisplay;
+    [SerializeField]private Text soldierDisplay;
 	private int soldierCount = 0;
 	public int playerOwner = -1;
     private bool currentSelection = false;
@@ -31,9 +31,8 @@ public class TerritoryNode : MonoBehaviour {
 	}
 
     private void DisplayUpdate() {
-        foreach (Text t in soldierDisplay) {
-            t.text = soldierCount.ToString();
-        }
+        
+        soldierDisplay.text = soldierCount.ToString();
 
         if (soldierCount == 0) {
             playerOwner = -1;
@@ -41,7 +40,7 @@ public class TerritoryNode : MonoBehaviour {
         }
 
         if (currentSelection) {
-            outline.outlineSize = 5;
+            outline.outlineSize = 6;
             outline.color = ownerCol;
             
         }
