@@ -1,8 +1,8 @@
-﻿     using UnityEngine;
-     using System.Collections;
-     using UnityEngine.UI;
+﻿using UnityEngine;
+using System.Collections;
+using UnityEngine.UI;
 
-     public class TerritoryNode : MonoBehaviour {
+public class TerritoryNode : MonoBehaviour {
 
      [SerializeField]private TerritoryNode[] adjacentNodes;
      [SerializeField]private Text soldierDisplay;
@@ -19,17 +19,23 @@
      public SpriteOutline outline;
      private Color territoryColor;
      [SerializeField]private SpriteRenderer sRend;
+
+
      // Use this for initialization
      void Start () {
+
           outline = gameObject.GetComponent<SpriteOutline>();
           ownerCol = Color.white;
           circleMat = sRend.material;
           territoryColor = gameObject.GetComponent<SpriteRenderer>().color;
+
      }
 	
      // Update is called once per frame
      void Update () {
+
           DisplayUpdate();
+
      }
 
      private void DisplayUpdate() {
@@ -37,34 +43,45 @@
           soldierDisplay.text = soldierCount.ToString();
 
           if (soldierCount == 0) {
+
                playerOwner = -1;
             
           }
 
           if (currentSelection) {
+
                outline.outlineSize = 6;
                outline.color = ownerCol;
             
-          }
-          else {
+          } else {
+
                outline.outlineSize = 0;
+
           }
+
           ownerCol.a = 0.8f;
           sRend.color = ownerCol;
           circleMat.color = ownerCol;
         
      }
+
      public void AdjustSoldiers(int newSoldiers){ soldierCount += newSoldiers;}
      public void SetSoldiers(int newSoldiers) { soldierCount = newSoldiers; }
-     public int DisplaySoldiers(){return soldierCount;}
+     public int DisplaySoldiers(){return soldierCount; }
 
      public void SetCurrentSelection(bool selection) {
+
           currentSelection = selection;
+
           if (!selection) {
+
                DeselectAdjacentTerritories();
                //  outline.color = Color.white;
+
           } else {
+
                outline.color = ownerCol;
+
           }
      }
 
@@ -77,61 +94,79 @@
      public TerritoryNode[] GetAdjacentNodes() { return adjacentNodes; }
 
      public void SetColor(Color colour){ ownerCol = colour;}
-     void OnDrawGizmosSelected(){
+
+     void OnDrawGizmosSelected() {
+
 	     Gizmos.color = Color.white;
+
 	     for(int i = 0; i < adjacentNodes.Length; i++) {
+
 		     Gizmos.DrawLine(gameObject.transform.position, adjacentNodes[i].transform.position);
+
 	     }
+
      }
 
      public void HighlightAdjacentTerritories(bool highlightFriendlies)
      {
           currentSelection = true;
-          if (highlightFriendlies)
-          {
-               foreach (TerritoryNode territory in adjacentNodes)
-               {
-                    if (territory.DisplayOwner() == playerOwner)
-                    {
-                    territory.SetCurrentSelection(currentSelection);
-                    territory.outline.color = ownerCol;
-                    lineCol = ownerCol;
-                    DrawLine(transform.position, territory.transform.position, 1f);
+
+          if (highlightFriendlies) {
+
+               foreach (TerritoryNode territory in adjacentNodes) {
+
+                    if (territory.DisplayOwner() == playerOwner) {
+
+                         territory.SetCurrentSelection(currentSelection);
+                         territory.outline.color = ownerCol;
+                         lineCol = ownerCol;
+                         DrawLine(transform.position, territory.transform.position, 1f);
+
                     }
+
                }
-          }
-          else
-          {
-               foreach (TerritoryNode territory in adjacentNodes)
-               {
-                    if (territory.DisplayOwner() != playerOwner)
-                    {
-                    territory.SetCurrentSelection(true);
-                    territory.outline.color = enemyCol;
-                    lineCol = enemyCol;
-                    DrawLine(transform.position, territory.transform.position, 1f);
+
+          } else {
+
+               foreach (TerritoryNode territory in adjacentNodes) {
+
+                    if (territory.DisplayOwner() != playerOwner) {
+
+                         territory.SetCurrentSelection(true);
+                         territory.outline.color = enemyCol;
+                         lineCol = enemyCol;
+                         DrawLine(transform.position, territory.transform.position, 1f);
+
                     }
+
                }
+
           }
-     }
-     public void DeselectAdjacentTerritories()
-     {
-          foreach(TerritoryNode territory in adjacentNodes)
-          {
-               territory.SetCurrentSelection(currentSelection);
-          }
+
      }
 
-     private void DrawLine(Vector3 start, Vector3 destination, float duration)
-     {
+     public void DeselectAdjacentTerritories() {
+
+          foreach(TerritoryNode territory in adjacentNodes) {
+
+               territory.SetCurrentSelection(currentSelection);
+
+          }
+
+     }
+
+     private void DrawLine(Vector3 start, Vector3 destination, float duration) {
+
           start.z = 1;
           destination.z = 1;
           GameObject myLine = new GameObject();
           Gradient gradient = new Gradient();
+
           gradient.SetKeys(
-               new GradientColorKey[] { new GradientColorKey(ownerCol,0.0f), new GradientColorKey(lineCol,1.0f)},
-               new GradientAlphaKey[] { new GradientAlphaKey(0.5f, 0.0f), new GradientAlphaKey(1.0f,1.0f)}
-               );
+                           new GradientColorKey[] { new GradientColorKey(ownerCol,0.0f), new GradientColorKey(lineCol,1.0f)},
+                           new GradientAlphaKey[] { new GradientAlphaKey(0.5f, 0.0f), new GradientAlphaKey(1.0f,1.0f)}
+                           );
+
           myLine.transform.position = start;
           myLine.AddComponent<LineRenderer>();
           LineRenderer lr = myLine.GetComponent<LineRenderer>();
@@ -142,8 +177,10 @@
           lr.SetPosition(0, start);
           lr.SetPosition(1, destination);
           GameObject.Destroy(myLine, duration);
+
      }
 
      public Color GetTerritoryColor() { return territoryColor; }
      public SpriteRenderer GetSpriteRenderer() { return sRend; }
-     }
+
+}

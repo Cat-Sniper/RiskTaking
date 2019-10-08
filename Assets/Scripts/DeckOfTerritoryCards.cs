@@ -10,9 +10,8 @@ using UnityEngine;
 
 public class DeckOfTerritoryCards : MonoBehaviour {
 
-    [SerializeField]
-    private GameObject[] cards;
-    public GameObject CardPrefab;
+    [SerializeField] private GameObject[] cards;
+    [SerializeField] private GameObject CardPrefab;
 
 	// Use this for initialization
 	void Start () {
@@ -25,6 +24,7 @@ public class DeckOfTerritoryCards : MonoBehaviour {
 	}
 
     public void GenerateCards(TerritoryNode[] allTerritories) {
+
         int armyValue = 1;
 
         for(int i = 0; i < allTerritories.Length + 2; i++) {
@@ -32,8 +32,10 @@ public class DeckOfTerritoryCards : MonoBehaviour {
             TerritoryCard cardScript = cards[i].GetComponent<TerritoryCard>();
 
             if (i < allTerritories.Length) {
+
                 cardScript.InitializeTerritoryCard(allTerritories[i], armyValue);
                 armyValue++;
+
             } else {
 
             }
