@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using System.Collections;
 
 public class TerritoryCard : MonoBehaviour {
@@ -12,7 +13,52 @@ public class TerritoryCard : MonoBehaviour {
     public void SetTerritory(TerritoryNode terry) { territory = terry; }
     public TerritoryNode GetTerritory() { return territory; }
 
-    private Sprite sprterritory;
-    private Sprite sprArmy;
-    private string TerritoryName;
+
+    public GameObject[] armySprites;
+
+    public Image sprTerritory;
+    public Text territoryNameOb;
+    private string territoryName;
+
+    void Start () {
+
+        for(int i = 0; i < 3; i++) {
+            armySprites[i].SetActive(false);
+        }
+    }
+
+    public void InitializeTerritoryCard(TerritoryNode newTerritory, int newArmy) {
+
+        //TerritoryInformation
+        SetTerritory(newTerritory);
+        GetTerritory().SetColor(newTerritory.GetTerritoryColor());
+        territoryName = newTerritory.gameObject.name;
+        territoryNameOb.text = territoryName;
+        sprTerritory.sprite = newTerritory.GetSpriteRenderer().sprite;
+        
+        
+
+        switch(newArmy) {
+
+            //INFANTRY
+            case 1:
+         
+                break;
+
+            //CAVALRY
+            case 2:
+ 
+             
+                break;
+
+            //ARTILLERY
+            case 3:
+        
+                break;
+
+          
+
+        }
+    }
+
 }

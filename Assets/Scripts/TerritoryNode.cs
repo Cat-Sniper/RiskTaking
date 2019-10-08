@@ -17,12 +17,14 @@ public class TerritoryNode : MonoBehaviour {
     private Color lineCol = Color.white;
     private Material circleMat;
     public SpriteOutline outline;
+    private Color territoryColor;
     [SerializeField]private SpriteRenderer sRend;
 	// Use this for initialization
 	void Start () {
         outline = gameObject.GetComponent<SpriteOutline>();
         ownerCol = Color.white;
         circleMat = sRend.material;
+        territoryColor = gameObject.GetComponent<SpriteRenderer>().color;
     }
 	
 	// Update is called once per frame
@@ -142,4 +144,7 @@ public class TerritoryNode : MonoBehaviour {
         lr.SetPosition(1, destination);
         GameObject.Destroy(myLine, duration);
     }
+
+    public Color GetTerritoryColor() { return territoryColor; }
+    public SpriteRenderer GetSpriteRenderer() { return sRend; }
 }

@@ -418,6 +418,7 @@ public class RiskGameMaster : MonoBehaviour {
             RollDice(); 
     } 
     private void RollDice() { //Dice Rolling Algorithm
+
         int defendersLost = 0;
         int attackersLost = 0;
         int numAttackingDice = (int)attackSlider.value;
@@ -472,6 +473,7 @@ public class RiskGameMaster : MonoBehaviour {
             Debug.Log("Attacker loses " + attackersLost + " soldiers");
 
             CloseAttackPanelButton();
+
             //Annex territory, set all properties necessary for the new owner
             if (defendingTerritory.DisplaySoldiers() == 0) {
                 currentPlayers[defendingTerritory.DisplayOwner()].RemoveTerritory(defendingTerritory);
