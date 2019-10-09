@@ -20,6 +20,9 @@ public class TerritoryNode : MonoBehaviour {
      private Color territoryColor;
      [SerializeField]private SpriteRenderer sRend;
 
+     private GameObject[] currentLines;
+     private int activeLines = 0;
+
 
      // Use this for initialization
      void Start () {
@@ -28,6 +31,8 @@ public class TerritoryNode : MonoBehaviour {
           ownerCol = Color.white;
           circleMat = sRend.material;
           territoryColor = gameObject.GetComponent<SpriteRenderer>().color;
+
+          currentLines = new GameObject[adjacentNodes.Length];
 
      }
 	
@@ -72,10 +77,9 @@ public class TerritoryNode : MonoBehaviour {
      public void SetCurrentSelection(bool selection) {
 
           currentSelection = selection;
-
+          
           if (!selection) {
 
-               DeselectAdjacentTerritories();
                //  outline.color = Color.white;
 
           } else {
@@ -120,7 +124,7 @@ public class TerritoryNode : MonoBehaviour {
                          territory.SetCurrentSelection(currentSelection);
                          territory.outline.color = ownerCol;
                          lineCol = ownerCol;
-                         DrawLine(transform.position, territory.transform.position, 1f);
+                         DrawLine(transform.position, territory.transform.position, -1);
 
                     }
 
@@ -135,7 +139,7 @@ public class TerritoryNode : MonoBehaviour {
                          territory.SetCurrentSelection(true);
                          territory.outline.color = enemyCol;
                          lineCol = enemyCol;
-                         DrawLine(transform.position, territory.transform.position, 1f);
+                         DrawLine(transform.position, territory.transform.position, -1);
 
                     }
 
@@ -147,11 +151,14 @@ public class TerritoryNode : MonoBehaviour {
 
      public void DeselectAdjacentTerritories() {
 
+          DestroyAllLines();
+
           foreach(TerritoryNode territory in adjacentNodes) {
 
-               territory.SetCurrentSelection(currentSelection);
+               territory.SetCurrentSelection(false);
 
           }
+
 
      }
 
@@ -160,6 +167,9 @@ public class TerritoryNode : MonoBehaviour {
           start.z = 1;
           destination.z = 1;
           GameObject myLine = new GameObject();
+          currentLines[activeLines] = myLine;
+          activeLines++;
+
           Gradient gradient = new Gradient();
 
           gradient.SetKeys(
@@ -170,16 +180,32 @@ public class TerritoryNode : MonoBehaviour {
           myLine.transform.position = start;
           myLine.AddComponent<LineRenderer>();
           LineRenderer lr = myLine.GetComponent<LineRenderer>();
-          lr.material = new Material(Shader.Find("Particles/Alpha Blended Premultiply"));
+          lr.material = new Material(Shader.Find("Particles/Standard Unlit"));
           lr.colorGradient = gradient;
           lr.startWidth = 0.015f;
           lr.endWidth = 0.0001f;
           lr.SetPosition(0, start);
           lr.SetPosition(1, destination);
-          GameObject.Destroy(myLine, duration);
+
+          // Delete the line after 'duration' seconds. Or last forever if duration is less than zero
+          if(duration > 0) {
+               GameObject.Destroy(myLine, duration);
+               activeLines--;
+          }
 
      }
 
+     private void DestroyAllLines(){
+
+          for (int i = 0; i < activeLines; i++){
+               
+               if(currentLines[i] != null){
+                    GameObject.Destroy(currentLines[i]);
+               }
+          }
+
+          activeLines = 0;
+     }
      public Color GetTerritoryColor() { return territoryColor; }
      public SpriteRenderer GetSpriteRenderer() { return sRend; }
 

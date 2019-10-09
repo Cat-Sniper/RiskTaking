@@ -2,6 +2,7 @@
 using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
+using System;
 
 public class RiskGameMaster : MonoBehaviour {
      
@@ -45,6 +46,7 @@ public class RiskGameMaster : MonoBehaviour {
      //#########################//
 
      private GameObject attackPanel;
+     private GameObject debugPopulateButton;
      private Slider attackSlider;
      private Text attackDice;
      private Text attackingCountry;
@@ -79,6 +81,7 @@ public class RiskGameMaster : MonoBehaviour {
           turnButton = GameObject.Find("End Turn Button");
           attackButton = GameObject.Find("AttackButtonText").GetComponent<Text>();
           attackSlider = GameObject.Find("SoldierSlider").GetComponent<Slider>();
+          debugPopulateButton = GameObject.Find("Debugging: Populate Territories");
           attackUI.SetActive(false);
           fortifyUI.SetActive(false);
           reinforceUI.SetActive(false);
@@ -293,6 +296,10 @@ public class RiskGameMaster : MonoBehaviour {
                                    
                                    // Can only pick neutral territories - territories with owner set to -1
                                    if (currentTerritory.DisplayOwner() < 0) {
+
+                                        if(debugPopulateButton.activeInHierarchy)
+                                             debugPopulateButton.SetActive(false);
+                                        
 
                                         currentTerritory.SetCurrentSelection(true);
                                         currentTerritory.AdjustSoldiers(1);
@@ -725,4 +732,50 @@ public class RiskGameMaster : MonoBehaviour {
      }
 
      public Player GetCurrentPlayer() { return currentPlayers[currentPlayersTurn]; }
+
+     /*   Used at the start of the game to quickly randomize territories to each player
+      *   Button only available before first soldier is placed
+      */
+     public void DebugPopulateTerritories(){
+
+          System.Random rng = new System.Random();
+          int n = unclaimedTerritories;
+          TerritoryNode[] shuffledTerritories = allTerritories;
+
+          debugPopulateButton.SetActive(false);
+
+          // Shuffle All the territories
+          while (n > 1) {
+               n--;
+               int k = rng.Next(n + 1);
+              
+               TerritoryNode terry = shuffledTerritories[k];
+               shuffledTerritories[k] = shuffledTerritories[n];
+               shuffledTerritories[n] = terry;
+          }
+
+
+          // Distribute the territories in order to each active player
+          int i = 0;
+          n = unclaimedTerritories - 1;
+          while (i < n) {
+               
+               for(int j = 0; j < activePlayers; j++ ) {
+
+                    TerritoryNode terry = shuffledTerritories[i];
+
+                    ////////////////////////////
+                    terry.AdjustSoldiers(1);
+                    currentPlayers[j].AddArmies(-1);
+                    currentPlayers[j].AddTerritory(terry);
+                    terry.SetColor(currentPlayers[j].armyColour);
+                    terry.SetOwner(j);
+                    unclaimedTerritories -= 1;
+                    ///////////////////////////
+                    i++;
+               }
+               
+          }
+          AdvanceTurn();
+     }
 }
