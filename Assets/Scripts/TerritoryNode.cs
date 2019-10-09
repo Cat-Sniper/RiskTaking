@@ -7,7 +7,7 @@ public class TerritoryNode : MonoBehaviour {
      [SerializeField]private TerritoryNode[] adjacentNodes;
      [SerializeField]private Text soldierDisplay;
      private int soldierCount = 0;
-     public int playerOwner = -1;
+     public int playerOwner = -1;                                                                   // -1 means by default every territory will be neutral with no owner
      private bool currentSelection = false;
      private Continent continent;
      // private bool friendlySelection = false;
@@ -47,12 +47,6 @@ public class TerritoryNode : MonoBehaviour {
         
           soldierDisplay.text = soldierCount.ToString();
 
-          if (soldierCount == 0) {
-
-               playerOwner = -1;
-            
-          }
-
           if (currentSelection) {
 
                outline.outlineSize = 6;
@@ -74,20 +68,7 @@ public class TerritoryNode : MonoBehaviour {
      public void SetSoldiers(int newSoldiers) { soldierCount = newSoldiers; }
      public int DisplaySoldiers(){return soldierCount; }
 
-     public void SetCurrentSelection(bool selection) {
-
-          currentSelection = selection;
-          
-          if (!selection) {
-
-               //  outline.color = Color.white;
-
-          } else {
-
-               outline.color = ownerCol;
-
-          }
-     }
+     public void SetCurrentSelection(bool selection) { currentSelection = selection; }
 
      public bool GetCurrentSelection() { return currentSelection; }
      public Continent GetContinent() { return continent; }

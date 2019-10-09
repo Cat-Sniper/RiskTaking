@@ -28,4 +28,5 @@ public class Die : MonoBehaviour {      //Generic Die class, can be used for any
      public void SetNumberOfSides(int sides){ nSides = sides;}
      public int GetNumberOfSides(){return nSides;}
      public int GetTopFace() { return topFace;}
+ 
 }

@@ -1,12 +1,15 @@
-﻿using UnityEngine;
+﻿/// TODO in order of priority:
+///  - Use Conquer Territory() where applicable: function is complete, just need to implement it
+///  - Game Over Phase: What happens when we have a winner?
+///  - Each Territory should handle itself better: setting a new owner should tell the territory that all it's attributes need to reflect the new ownership
+
+using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
 using System;
 
 public class RiskGameMaster : MonoBehaviour {
-     
-     //TODO: Create a general function for changing ownership of territories
      
      enum TURN_PHASE {RECRUIT,ATTACK,FORTIFY};
      enum ARMY_DENOMINATIONS {INFANTRY, CAVALRY, ARTILLERY};
@@ -16,6 +19,7 @@ public class RiskGameMaster : MonoBehaviour {
      private bool didOnce = false;
      private bool fortified = false;
      private bool territoryConquered = false;
+     private bool explosionInQueue = false;
 
      public Continent[] continents;
      private TerritoryNode[] allTerritories;
@@ -42,7 +46,13 @@ public class RiskGameMaster : MonoBehaviour {
      private GameObject reinforceUI;
      private GameObject turnButton;
      [SerializeField] private GameObject explosionPrefab;
-    
+
+     private Vector3[] explosionQueue;
+     private int explosionsWaiting = 0;
+     private int numAttackingDice = 0;
+     private int defendersLost = 0;
+     private int attackersLost = 0;
+
      //#########################//
 
      private GameObject attackPanel;
@@ -61,7 +71,8 @@ public class RiskGameMaster : MonoBehaviour {
 
      // Use this for initialization
      void Start () {
-        
+
+          explosionQueue = new Vector3[defendingDice.Length];
           allTerritories = new TerritoryNode[unclaimedTerritories]; 															//Test
           turnInfo = GameObject.Find("Current Turn").GetComponent<Text>();
           phaseInfoTxt = GameObject.Find("Current Phase").GetComponent<Text>();
@@ -165,7 +176,9 @@ public class RiskGameMaster : MonoBehaviour {
                               fortifyUI.SetActive(false);
                               didOnce = true;
 
-                         } 
+                         }
+
+                         ResolveCombat();
                          
                          if (territoryConquered) {
 
@@ -176,7 +189,9 @@ public class RiskGameMaster : MonoBehaviour {
                               if (!attackPanel.activeInHierarchy)
                                    OpenAttackPanel();
 
-                         } else if (Input.GetMouseButtonDown(0) && !attackPanel.activeInHierarchy && currentPlayersTurn != -1) {  //Mouse Input while the attack options panel is closed
+
+                         //Mouse Input while the attack options panel is closed
+                         } else if (Input.GetMouseButtonDown(0) && !attackPanel.activeInHierarchy && currentPlayersTurn != -1) {  
 
                               RaycastHit2D mouseCast2D = Physics2D.GetRayIntersection(Camera.main.ScreenPointToRay(Input.mousePosition), 100, 1 << LayerMask.NameToLayer("Territory"));
 
@@ -184,20 +199,26 @@ public class RiskGameMaster : MonoBehaviour {
 
                                    TerritoryNode newTerritory = mouseCast2D.rigidbody.GetComponent<TerritoryNode>();
 
-                                   if (newTerritory != currentTerritory && newTerritory.GetCurrentSelection()) { // clicked territory is a territory adjacent to selected player territory.
+
+                                   // clicked territory is a territory adjacent to selected player territory.
+                                   if(newTerritory != currentTerritory && newTerritory.GetCurrentSelection()) {
 
                                         currentTerritory.DeselectAdjacentTerritories();
                                         SelectDefendingCountry(newTerritory);
                                         attackSlider.minValue = 1;
                                         OpenAttackPanel();
 
-                                   } else if (newTerritory.DisplayOwner() == currentPlayersTurn && newTerritory.DisplaySoldiers() > 1) {  //clicked territory is owned by the player and is eligible to attack
+                                   //clicked territory is owned by the player and is eligible to attack
+                                   } else if (newTerritory.DisplayOwner() == currentPlayersTurn && newTerritory.DisplaySoldiers() > 1) {
 
-                                        currentTerritory.DeselectAdjacentTerritories();
-                                        SelectAttackingCountry(newTerritory);
+                                        SelectActiveTerritory(newTerritory);
 
-                                   } else                                                                        //clicked territory does not qualify as an attacking country or defending country
-                                        currentTerritory.DeselectAdjacentTerritories();
+                                   //clicked territory does not qualify as an attacking country or defending country
+                                   } else
+                                        DeselectTerritory();
+
+                              } else {
+                                   DeselectTerritory();
                               }
                          }
 
@@ -235,26 +256,26 @@ public class RiskGameMaster : MonoBehaviour {
 
                               RaycastHit2D mouseCast2D = Physics2D.GetRayIntersection(Camera.main.ScreenPointToRay(Input.mousePosition), 100, 1 << LayerMask.NameToLayer("Territory"));
 
-                              if (mouseCast2D) {
+                              if(mouseCast2D) {
 
                                    TerritoryNode newTerritory = mouseCast2D.rigidbody.GetComponent<TerritoryNode>();
 
                                    // clicked territory is a territory adjacent to selected player territory.
-                                   if(newTerritory != currentTerritory && newTerritory.GetCurrentSelection())  {
+                                   if(newTerritory != currentTerritory && newTerritory.GetCurrentSelection()) {
 
                                         currentTerritory.DeselectAdjacentTerritories();
                                         SelectDefendingCountry(newTerritory);
                                         OpenAttackPanel();
 
-                                   } else if (newTerritory.DisplayOwner() == currentPlayersTurn && newTerritory.DisplaySoldiers() > 1)   { //clicked territory is owned by the player and is eligible to fortify
-                                  
-                                        currentTerritory.DeselectAdjacentTerritories();
-                                        SelectAttackingCountry(newTerritory);
+                                   } else if(newTerritory.DisplayOwner() == currentPlayersTurn && newTerritory.DisplaySoldiers() > 1) { //clicked territory is owned by the player and is eligible to fortify another territory
+
+                                        DeselectTerritory();
+                                        SelectActiveTerritory(newTerritory);
 
                                    } else                                                                        //clicked territory does not qualify as an attacking country or defending country 
-                                        currentTerritory.DeselectAdjacentTerritories();
-                              } else 
-                                   currentTerritory.DeselectAdjacentTerritories();
+                                        DeselectTerritory();
+                              } else
+                                   DeselectTerritory();
                          }
 
 
@@ -280,6 +301,14 @@ public class RiskGameMaster : MonoBehaviour {
                #region SETUP
                } else { //Setup Phase -- Ends when all Players are out of soldiers to place           
 
+                    if(unclaimedTerritories <= 0) {
+
+                         allTsClaimed = true;
+                         phaseInfoTxt.text = "Reinforce claimed territories";
+
+                    }
+
+
                     if (Input.GetMouseButtonDown(0) && currentPlayersTurn != -1) {  //Mouse Input handling ( Click on Territory to place soldier)
 
                          RaycastHit2D mouseCast2D = Physics2D.GetRayIntersection(Camera.main.ScreenPointToRay(Input.mousePosition), 100, 1 << LayerMask.NameToLayer("Territory"));
@@ -296,7 +325,8 @@ public class RiskGameMaster : MonoBehaviour {
                                    
                                    // Can only pick neutral territories - territories with owner set to -1
                                    if (currentTerritory.DisplayOwner() < 0) {
-
+                                        
+                                        // Hide the populate button once the first territory has been selected
                                         if(debugPopulateButton.activeInHierarchy)
                                              debugPopulateButton.SetActive(false);
                                         
@@ -312,11 +342,7 @@ public class RiskGameMaster : MonoBehaviour {
                                         if (currentTerritory.GetContinent().CheckBonus(currentPlayersTurn)) 
                                              currentTerritory.GetContinent().UpdateBorderColour(GetCurrentPlayer().armyColour);
                                 
-                                        if (unclaimedTerritories <= 0) {
-
-                                             allTsClaimed = true;
-                                             phaseInfoTxt.text = "Reinforce claimed territories";
-                                        }
+                                        
 
                                         AdvanceTurn();
                                    }
@@ -368,6 +394,10 @@ public class RiskGameMaster : MonoBehaviour {
           }
      }
 
+     /// <summary>
+     /// Initialize UI and settings for the game
+     /// </summary>
+     /// <param name="nPlayers">Number of players in the game</param>
      public void SetupGame(int nPlayers) {
 
           int territories = GameObject.FindGameObjectsWithTag("Map").Length;
@@ -472,6 +502,10 @@ public class RiskGameMaster : MonoBehaviour {
           }
      }
 
+     /// <summary>
+     /// Calculates the number of soldiers a player gets during the Recruitment phase
+     /// </summary>
+     /// <param name="playerID"> Who's turn is it? </param>
      private void CalculateReinforcements(Player playerID) {
 
           int newArmies = 0;
@@ -523,9 +557,14 @@ public class RiskGameMaster : MonoBehaviour {
           }
      }
 
+     /// <summary>
+     /// Makes the inputted territory active after deactivating the last selected territory.
+     /// This selected territory is now ready to interact with the player
+     /// </summary>
+     /// <param name="attacker"> The territory that will be either attacking enemy territories, or sending reinforcements</param>
+     private void SelectActiveTerritory(TerritoryNode attacker) { //Highlights the active Territory, before querrying it's adjacentTerritories.
 
-     private void SelectAttackingCountry(TerritoryNode attacker) { //Highlights the active Territory, before querrying it's adjacentTerritories.
-
+          DeselectTerritory();
           attackingCountry.text = attacker.name;
           attackingSoldierCount.text = attacker.DisplaySoldiers().ToString();
 
@@ -543,10 +582,14 @@ public class RiskGameMaster : MonoBehaviour {
           }
 
           currentTerritory = attacker;
-          attackingCol.color = currentPlayers[currentTerritory.DisplayOwner()].armyColour;
+          
 
      }
 
+     /// <summary>
+     /// Prepares the inputted territory to either defend or receive soldiers
+     /// </summary>
+     /// <param name="defender"> The territory to be attacked or fortified </param>
      private void SelectDefendingCountry(TerritoryNode defender) {
 
           defender.outline.color = Color.red;
@@ -557,26 +600,15 @@ public class RiskGameMaster : MonoBehaviour {
 
      }
 
-     public void AttackButton() {
+     /// <summary>
+     /// Risk dice rolling algorithm - Invoked by the accept button on the attack panel
+     /// Note: For now the defender doesn't get to choose how many dice to use - defenders will always use the most dice they have available (
+     /// </summary>
+     private void RollDice() {
 
-          if (territoryConquered)
-               MoveTroops();
+          CloseAttackPanelButton();
 
-          else if(currentPhase == TURN_PHASE.FORTIFY) {
-
-               MoveTroops();
-               fortified = true;
-
-          } else 
-               RollDice(); 
-
-     } 
-
-     private void RollDice() { 
-
-          int defendersLost = 0;
-          int attackersLost = 0;
-          int numAttackingDice = (int)attackSlider.value;
+          numAttackingDice = (int)attackSlider.value;
           int numDefendingDice = 0;
 
           if (numAttackingDice > 0) {
@@ -611,67 +643,44 @@ public class RiskGameMaster : MonoBehaviour {
                SortIntArrayDesc(attackDiceRoll);
                SortIntArrayDesc(defendDiceRoll);
 
+               // Combat Results: compare top dice and prepare explosion effects
+               explosionInQueue = true;
+               explosionsWaiting = numDefendingDice;
+
                for (int i = 0; i < numDefendingDice; i++) {
 
                     if (attackDiceRoll[i] > defendDiceRoll[i]) {
 
                          defendersLost++;
-                         
-                         //TODO: Explosion function where you pass in the affected territory
-                         //Explosion effect
-                         GameObject explode = CFX_SpawnSystem.GetNextObject(explosionPrefab, false); //WarFX by JMO
-                         Vector3 exPos = defendingTerritory.transform.position;
-                         exPos.z = 1.1f;
-                         explode.transform.position = exPos;
-                         explode.SetActive(true);
+                         explosionQueue[i] = defendingTerritory.transform.position; 
 
                     } else {
 
                          attackersLost++;
-
-                         //Explosion Effect
-                         GameObject explode = CFX_SpawnSystem.GetNextObject(explosionPrefab, false); //WarFX by JMO
-                         Vector3 exPos = currentTerritory.transform.position;
-                         exPos.z = 1.1f;
-                         explode.transform.position = exPos;
-                         explode.SetActive(true);
+                         explosionQueue[i] = currentTerritory.transform.position;
 
                     }
-               }
-
-               defendingTerritory.AdjustSoldiers(-defendersLost);
-               currentTerritory.AdjustSoldiers(-attackersLost);
-               Debug.Log("Defender loses " + defendersLost + " soldiers");
-               Debug.Log("Attacker loses " + attackersLost + " soldiers");
-
-               CloseAttackPanelButton();
-
-               //Annex territory, set all properties necessary for the new owner
-               if (defendingTerritory.DisplaySoldiers() == 0) {
-
-                    currentPlayers[defendingTerritory.DisplayOwner()].RemoveTerritory(defendingTerritory);
-                    currentPlayers[currentPlayersTurn].AddTerritory(defendingTerritory);
-                    attackSlider.minValue = numAttackingDice - attackersLost;
-                    defendingTerritory.SetColor(currentPlayers[currentPlayersTurn].armyColour);
-                    defendingCol.color = currentPlayers[currentPlayersTurn].armyColour;
-                    territoryConquered = true;
 
                }
 
-          } else 
-               CloseAttackPanelButton();
+          }
           
-     } // end RollDice()
+     } 
 
+     /// <summary>
+     /// Used in conjunction with the Attack Panel: Once the player confirms their attack or fortification, 
+     /// AttackButton() calls this to transfer the selected number of troops from the 'attacker' territory
+     /// to the 'defender' territory
+     /// </summary>
      private void MoveTroops() {
 
           territoryConquered = false;
           int soldiers = (int)attackSlider.value;
           currentTerritory.AdjustSoldiers(-soldiers);
           defendingTerritory.AdjustSoldiers(soldiers);
-          defendingTerritory.SetOwner(currentPlayersTurn);
-          currentTerritory.DeselectAdjacentTerritories();
+          DeselectTerritory();
 
+          
           if (defendingTerritory.GetContinent().CheckBonus(currentPlayersTurn)) 
                defendingTerritory.GetContinent().UpdateBorderColour(GetCurrentPlayer().armyColour);
 
@@ -680,6 +689,28 @@ public class RiskGameMaster : MonoBehaviour {
 
           CloseAttackPanelButton();
      }
+
+     /// <summary>
+     /// Used by the attack panel button
+     /// </summary>
+     public void AttackButton() {
+
+          if(territoryConquered)
+               MoveTroops();
+
+          else if(currentPhase == TURN_PHASE.FORTIFY) {
+
+               MoveTroops();
+               fortified = true;
+
+          } else
+               RollDice();
+
+     }
+
+     /// <summary>
+     /// Used by the Next Turn button: phase/turn progression
+     /// </summary>
      public void NextTurnButton() {
 
           if (!setup) {
@@ -712,17 +743,19 @@ public class RiskGameMaster : MonoBehaviour {
 
      } // end NextTurnButton()
 
-     private void DeselectAllTerritories() {
-
-          foreach (TerritoryNode terry in allTerritories)
-               terry.SetCurrentSelection(false);
-          
-     }
-
      public void CloseAttackPanelButton() { attackPanel.SetActive(false); }
-     public void OpenAttackPanel() { attackPanel.SetActive(true); }
+
+     public void OpenAttackPanel() {
+
+          attackingCol.color = currentPlayers[currentTerritory.DisplayOwner()].armyColour;
+          attackPanel.SetActive(true); 
+
+     }
    
-     //Helper functions
+     /// <summary>
+     /// Helper function that Sorts an integer array in descending order
+     /// </summary>
+     /// <param name="ary"> The integer array</param>
      private void SortIntArrayDesc(int[] ary) {
 
           System.Array.Sort(ary,
@@ -731,11 +764,17 @@ public class RiskGameMaster : MonoBehaviour {
                });
      }
 
-     public Player GetCurrentPlayer() { return currentPlayers[currentPlayersTurn]; }
+     /// <summary>
+     /// Highlight colour around territory and adjacent territories are removed
+     /// </summary>
+     private void DeselectTerritory() {
+          currentTerritory.DeselectAdjacentTerritories();
+          currentTerritory.SetCurrentSelection(false);
+     }
 
-     /*   Used at the start of the game to quickly randomize territories to each player
-      *   Button only available before first soldier is placed
-      */
+     /// <summary>
+     /// Used at the beginning of the game to shuffle the territories and distribute them randomly to each player active in the game
+     /// </summary>
      public void DebugPopulateTerritories(){
 
           System.Random rng = new System.Random();
@@ -757,25 +796,112 @@ public class RiskGameMaster : MonoBehaviour {
 
           // Distribute the territories in order to each active player
           int i = 0;
-          n = unclaimedTerritories - 1;
+          n = unclaimedTerritories;
           while (i < n) {
                
                for(int j = 0; j < activePlayers; j++ ) {
 
                     TerritoryNode terry = shuffledTerritories[i];
 
-                    ////////////////////////////
-                    terry.AdjustSoldiers(1);
-                    currentPlayers[j].AddArmies(-1);
-                    currentPlayers[j].AddTerritory(terry);
-                    terry.SetColor(currentPlayers[j].armyColour);
-                    terry.SetOwner(j);
-                    unclaimedTerritories -= 1;
-                    ///////////////////////////
+                    terry.SetCurrentSelection(true);
+                    ConquerTerritory(terry, j);
+                    terry.SetCurrentSelection(false);
+                    unclaimedTerritories--;
                     i++;
+
+                    if(i >= n) {
+
+                         currentPlayersTurn = j;                      // set player's turn to the last player to place an army before advancing
+                         break;
+
+                    }
                }
                
           }
+
           AdvanceTurn();
      }
+
+     /// <summary>
+     /// Every frame during the attack phase we check whether or not there are explosions queued up and if so, we wait for the 
+     /// dice to stop rolling before we initiate the explosion and change owners.
+     /// </summary>
+     private void ResolveCombat() {
+
+
+          if(explosionInQueue && !defendingDice[0].GetComponent<RiskDie>().GetStillRolling()) {
+
+               for(int i = 0; i < explosionsWaiting; i++) {
+
+                    ExplodeAt(explosionQueue[i]);
+                    defendingTerritory.AdjustSoldiers(-defendersLost);
+                    currentTerritory.AdjustSoldiers(-attackersLost);
+
+                    
+
+                    //Annex territory, set all properties necessary for the new owner
+                    if(defendingTerritory.DisplaySoldiers() == 0) {
+
+                         attackSlider.minValue = numAttackingDice - attackersLost;
+
+                         ConquerTerritory(defendingTerritory, currentPlayersTurn, 0);
+                         defendingCol.color = currentPlayers[currentPlayersTurn].armyColour;
+                         territoryConquered = true;
+
+                    }
+
+                    defendersLost = 0;
+                    attackersLost = 0;
+                    
+               }
+
+               explosionInQueue = false;
+               explosionsWaiting = 0;
+          }
+
+         
+     }
+
+     /// <summary>
+     /// Spawns an explosion at the target location - used within ResolveCombat()
+     /// </summary>
+     /// <param name="target"> position information held within explosionQueue[] </param>
+     private void ExplodeAt(Vector3 target) {
+
+          GameObject explode = CFX_SpawnSystem.GetNextObject(explosionPrefab, false);               //WarFX by JMO
+          Vector3 exPos = target;
+          exPos.z = 1.1f;
+          explode.transform.position = exPos;
+          explode.SetActive(true);
+
+     }
+
+     /// <summary>
+     /// Flexible way of assigning a territory to a player. Will subtract 'soldierCount' from the player and initialize the territory appropriately
+     /// </summary>
+     /// <param name="annexedTerritory"> The territory to be assigned to the player. </param>
+     /// <param name="playerId"> The player's index within currentPlayers[]. </param>
+     /// <param name="soldierCount"> Optional: The number of soldiers to be transfered to the annexedTerritory. </param>
+     private void ConquerTerritory(TerritoryNode annexedTerritory, int playerId, int soldierCount = 1){
+
+          if(soldierCount != 0) {
+
+               annexedTerritory.AdjustSoldiers(soldierCount);                             // Add Soldiers to the territory
+               currentPlayers[playerId].AddArmies(soldierCount * -1);                     // Remove Soldiers from the player's pool
+
+          } 
+
+          currentPlayers[playerId].AddTerritory(annexedTerritory);                   // Give the player a reference to their new territory
+          annexedTerritory.SetColor(currentPlayers[playerId].armyColour);            // Change colour of the territory to the player's colour
+
+          // Remove the old player's ownership of the territory
+          if(annexedTerritory.DisplayOwner() >= 0) 
+               currentPlayers[annexedTerritory.DisplayOwner()].RemoveTerritory(annexedTerritory); 
+          
+          annexedTerritory.SetOwner(playerId);                                       // Give the territory their new owner's player ID
+
+     }
+
+     // Accessors / Mutators \\
+     public Player GetCurrentPlayer() { return currentPlayers[currentPlayersTurn]; }
 }

@@ -40,6 +40,7 @@ public class RiskDie : Die {
 
 	}
 
+     public bool GetStillRolling() { return startedRoll; }
      public bool GetCanFight() { return canFight; }
      public void SetCanFight(bool fight) { canFight = fight; }
 
